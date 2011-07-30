@@ -5,8 +5,8 @@ import sys
 import pyglet
 from pyglet.gl import *
 from pyglet.window import key
-#ScreenWidth = 1024
-#ScreenHeight = 800
+ScreenWidth = 1024
+ScreenHeight = 800
 View = 20
 
 pyglet.resource.path.append('../data/tiles')
