@@ -18,10 +18,11 @@ class TerrainMap:
 class Tile:
     def __init__(self, fname, w, h):
         self.Image = sf.Image()
-        self.Image.LoadFromFile(fname)
-        self.Sprite = sf.Sprite(self.Image)
-        self.Sprite.SetBlendMode(sf.Blend.Alpha)
-        self.Sprite.SetCenter(w//2, h - 40)        
+        self.Image.SetSmooth(False)
+        self.Image.LoadFromFile(fname)        
+        self.Sprite = sf.Sprite(self.Image) 
+        self.Sprite.SetBlendMode(sf.Blend.Alpha)               
+        self.Sprite.SetCenter(w//2, h - 40)   
         self.Width = w
         self.Height = h    
         
@@ -30,7 +31,7 @@ def TileToScreen(x, y):
     return ((y-x)*80, (x+y)*40)
 
 def ScreenToTile(x, y):
-    return (int(y//80 - x//160), int(x//160+y//80))                
+    return (int(round(y/80.0 - x/160.0)), int(round(x/160.0+y/80.0)))              
     
 def DrawMap(map, camX, camY): 
     (tcamX, tcamY) = ScreenToTile(camX, camY)
@@ -55,10 +56,15 @@ window.SetFramerateLimit(25)
         
 tileSet = []
 tileSet.append(Tile('data/tiles/template.png', 160, 80))
+tileSet.append(Tile('data/tiles/grass1.png', 160, 80))
 
 terrainMap = TerrainMap()
 terrainMap.SetDimmensions(100, 100)
 terrainMap.SetTileSet(tileSet)
+terrainMap.Map[11 * terrainMap.Width + 10] = 1
+terrainMap.Map[11 * terrainMap.Width + 11] = 1
+terrainMap.Map[12 * terrainMap.Width + 10] = 1
+terrainMap.Map[12 * terrainMap.Width + 11] = 1
 
 text = sf.String("Game Over")
 
@@ -79,9 +85,16 @@ while running:
         if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Down:
             camDy += (60.0 - camDy) * 0.01            
         if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Up:
-            camDy += (-60.0 - camDy) * 0.01            
+            camDy += (-60.0 - camDy) * 0.01  
+            
+        if event.Type == sf.Event.MouseButtonPressed:
+            (tx, ty) = ScreenToTile(camX - 400 + window.GetInput().GetMouseX(), camY - 300 + window.GetInput().GetMouseY())
+            terrainMap.Map[ty * terrainMap.Width + tx] = 1
+            print("ok")
                   
             
+    window.Clear(sf.Color.Blue)
+    
     camX += camDx; camY += camDy        
    
     camDx *= 0.9; camDy *= 0.9
