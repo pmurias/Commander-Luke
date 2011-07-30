@@ -1,32 +1,36 @@
 
 import sys
 
+
 import pyglet
 from pyglet.gl import *
-ScreenWidth = 800
-ScreenHeight = 600
-View = 10
+from pyglet.window import key
+#ScreenWidth = 1024
+#ScreenHeight = 800
+View = 20
+
+pyglet.resource.path.append('../data/tiles')
+pyglet.resource.reindex();
+
+
 
 class TerrainMap:
-    def SetDimmensions(self, w, h):
-        self.Map = [1] * w * h
-        self.Width = w
-        self.Height = h   
-        
-    def SetTileSet(self, tileSet):
-        self.TileSet = tileSet                                                                     
-                
-        
+    def __init__(self,width,height,tileSet):
+        self.tileSet = tileSet
+        self.width = width
+        self.height = height
+        self.map = [1] * width * height
+
 class Tile:
     def __init__(self, filename, w, h):
-        self.Image = pyglet.image.load(filename).get_texture(rectangle=True)
+        self.Image = pyglet.resource.image(filename) #pyglet.image.load(filename).get_texture(rectangle=True)
 
         #self.Sprite = sf.Sprite(self.Image) 
         #self.Sprite.SetBlendMode(sf.Blend.Alpha)               
         #self.Sprite.SetCenter(w//2, h - 40)   
 
-        self.Width = w
-        self.Height = h    
+        self.width = w
+        self.height = h    
         
 
 def TileToScreen(x, y):
@@ -35,65 +39,51 @@ def TileToScreen(x, y):
 def ScreenToTile(x, y):
     return (int(round(y/80.0 - x/160.0)), int(round(x/160.0+y/80.0)))              
     
-def DrawMap(map, camX, camY): 
-    (tcamX, tcamY) = ScreenToTile(camX, camY)
+def draw_map(map, batch, camera): 
+    sprites = []
+    (tcamX, tcamY) = ScreenToTile(camera.x, camera.y)
     (centerX, centerY) = TileToScreen(tcamX, tcamY)
-    (offX, offY) = (centerX - camX, centerY - camY)        
+    (offX, offY) = (centerX - camera.x, centerY - camera.y)        
     for i in range(0, View*2+1):
         for j in range(0,View+1-(i % 2)):
                             
             tileX = tcamX + i//2 - j
             tileY = tcamY + j + i//2 + (i % 2) - View
             
-            if tileX > 0 and tileY > 0 and tileX < map.Width and tileY < map.Height:                
-                tile = map.TileSet[map.Map[map.Width * tileY + tileX]]
+            if tileX > 0 and tileY > 0 and tileX < map.width and tileY < map.height:                
+                tile = map.tileSet[map.map[map.width * tileY + tileX]]
                 
                 (px, py) = TileToScreen(tileX - tcamX, tileY - tcamY)
 
+                sprite = pyglet.sprite.Sprite(tile.Image,batch=batch)
+                sprite.x = offX + px+ScreenWidth//2
+                sprite.y = offY + py+ScreenHeight//2
+                sprites.append(sprite)
+    return sprites
 
-                tile.Image.blit(offX + px+ScreenWidth//2, offY + py+ScreenHeight//2, 0)
+class Camera():
+    def __init__(self,x=0,y=0,dX=0,dY=0):
+        self.x = x
+        self.y = y
+        self.dX = dX
+        self.dY = dY
 
-               # tile.Sprite.SetPosition(, )                                                                                                
-                
-
-#window = sf.RenderWindow(sf.VideoMode(ScreenWidth, ScreenHeight), "Commander Luke")
-#window.SetFramerateLimit(25)
         
 tileSet = []
-tileSet.append(Tile('data/tiles/template.png', 160, 80))
-tileSet.append(Tile('data/tiles/grass1.png', 160, 80))
-
-# img = 
-# img.anchor_x = img.width // 2
-# img.anchor_y = img.height // 2
-
-terrainMap = TerrainMap()
-terrainMap.SetDimmensions(100, 100)
-terrainMap.SetTileSet(tileSet)
-terrainMap.Map[11 * terrainMap.Width + 10] = 1
-terrainMap.Map[11 * terrainMap.Width + 11] = 1
-terrainMap.Map[12 * terrainMap.Width + 10] = 1
-terrainMap.Map[12 * terrainMap.Width + 11] = 1
+tileSet.append(Tile('template.png', 160, 80))
+tileSet.append(Tile('grass1.png', 160, 80))
 
 
-camX = 0; camY = 1000
-camDx = 0; camDy = 0
+terrainMap = TerrainMap(100,100,tileSet)
 
-#running = True
-#while running:
-#    event = sf.Event()    
-#    while window.GetEvent(event):
-#        if event.Type == sf.Event.Closed:
-#            running = False
-#        
-#        if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Right:
-#            camDx += (60.0 - camDx) * 0.01            
-#        if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Left:
-#            camDx += (-60.0 - camDx) * 0.01            
-#        if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Down:
-#            camDy += (60.0 - camDy) * 0.01            
-#        if event.Type == sf.Event.KeyPressed and event.Key.Code == sf.Key.Up:
-#            camDy += (-60.0 - camDy) * 0.01  
+#terrainMap.Map[11 * terrainMap.Width + 10] = 1
+#terrainMap.Map[11 * terrainMap.Width + 11] = 1
+#terrainMap.Map[12 * terrainMap.Width + 10] = 1
+#terrainMap.Map[12 * terrainMap.Width + 11] = 1
+
+
+camera = Camera()
+
 #            
 #        if event.Type == sf.Event.MouseButtonPressed:
 #            (tx, ty) = ScreenToTile(camX - 400 + window.GetInput().GetMouseX(), camY - 300 + window.GetInput().GetMouseY())
@@ -101,14 +91,6 @@ camDx = 0; camDy = 0
 #            print("ok")
 #                  
 #            
-#    window.Clear(sf.Color.Blue)
-#    
-#    camX += camDx; camY += camDy        
-#   
-#    camDx *= 0.9; camDy *= 0.9
-#    window.Draw(text)    
-#
-#    window.Display()
 
 
 import sys
@@ -116,30 +98,58 @@ import sys
 import pyglet
 from pyglet.gl import *
 
-window = pyglet.window.Window(visible=False, resizable=True)
+window = pyglet.window.Window(visible=False, fullscreen=True)
+
+
+@window.event
+def on_key_press(symbol,modifiers):
+    if symbol == key.X:
+        exit()
+
+keys = key.KeyStateHandler()
+window.push_handlers(keys)
+
+tiles_batch = pyglet.graphics.Batch()
+
+fps_display = pyglet.clock.ClockDisplay()
+mapSprites = []
 
 @window.event
 def on_draw():
-    #background.blit_tiled(0, 0, 0, window.width, window.height)
-    DrawMap(terrainMap, camX, camY)
+    global mapSprites
+    window.clear()
 
-        
+    for sprite in mapSprites:
+        sprite.delete()
 
-if __name__ == '__main__':
+    mapSprites = draw_map(terrainMap,tiles_batch,camera)
+    tiles_batch.draw()
+    fps_display.draw()
 
-#    filename = sys.argv[1]
+
+def update_camera(dt):
+    camera.x += camera.dX
+    camera.y += camera.dY        
+
+    if keys[key.RIGHT]:
+        camera.dX += (60.0 - camera.dX) * 0.01            
+    if keys[key.LEFT]:
+        camera.dX += (-60.0 - camera.dX) * 0.01            
+
+    if keys[key.DOWN]:
+        camera.dY += (-60.0 - camera.dY) * 0.01  
+
+    if keys[key.UP]:
+        camera.dY += (60.0 - camera.dY) * 0.01            
+
+    camera.dX *= 0.9
+    camera.dY *= 0.9
 
 
-#    checks = pyglet.image.create(32, 32, pyglet.image.CheckerImagePattern())
-#    background = pyglet.image.TileableTexture.create_for_image(checks)
+pyglet.clock.schedule_interval(update_camera, 1/25.)
 
-    # Enable alpha blending, required for image.blit.
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
-    window.width = ScreenWidth 
-    window.height = ScreenHeight
-    window.set_visible()
+window.set_visible()
 
-    pyglet.app.run()
+pyglet.app.run()
 
