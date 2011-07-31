@@ -1,6 +1,11 @@
 CC=gcc
 CFLAGS=-c -std=gnu99 -Wall -O2
-CLIBS=-lglfw -lopengl32 -lpng -lz
+
+ifeq ($(OS),Windows_NT)
+	CLIBS=-lglfw -lopengl32 -lpng -lz
+else
+	CLIBS=-lglfw -lpng -lz
+endif
 
 SOURCES= \
 	main.c \
