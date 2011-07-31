@@ -1,6 +1,6 @@
 #include <png.h>
 #include <stdlib.h>
-#include <GL/GL.h>
+#include <GL/gl.h>
 
 #include "texture.h"
 
