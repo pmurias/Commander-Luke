@@ -41,8 +41,11 @@ int main(int argc, char **argv)
 			serversocket_set_handlers(servor, &read_handler, &accept_handler);
 			serversocket_listen(servor);
 			while (1) {
+//                                printf("#1\n");
 				serversocket_select(servor);				
+ //                               printf("#2\n");
 				if (strlen(writebuf) > 0) {					
+                                        printf("#3\n");
 					serversocket_write(servor, lastconnection, writebuf, strlen(writebuf));
 					memset(writebuf, 0, 255);
 				}
@@ -62,8 +65,12 @@ int main(int argc, char **argv)
 				memset(buf, 0, 255);
 								
 				gets(buf);
-				if (strlen(buf) > 0)
+                                printf("here:\n");
+				if (strlen(buf) > 0) {
+                                        printf("sending...\n");
 					clientsocket_write(client, buf, strlen(buf));				
+                                        printf("sent...\n");
+                                }
 			}			
 		}
 	}

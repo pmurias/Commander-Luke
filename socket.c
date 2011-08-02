@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #ifdef WIN32
 	#define _WIN32_WINNT 0x0501
@@ -26,7 +32,12 @@ struct _Socket
 {
 	SOCKET handle;
 	struct sockaddr_in addr;
+#ifdef WIN32
 	int addr_len;
+#else
+        socklen_t addr_len;
+#endif
+
 };
 
 #define SOCK_BUFFER_LEN 8
@@ -271,11 +282,12 @@ void serversocket_select(ServerSocket *server)
 	tv.tv_sec = 0;
 	tv.tv_usec = 1000;
 	
-	if (select(0, &server->read_set, &server->write_set, &server->exc_set, &tv) > 0)  
+	if (select(FD_SETSIZE, &server->read_set, &server->write_set, &server->exc_set, &tv) > 0)  
 	{	
 		/* new connection is waiting for accept */
 		if (FD_ISSET(server->socket->handle, &server->read_set)) 
 		{
+                        printf("new connection\n");
 			client = new_socket();
 			client->handle = accept(server->socket->handle, (struct sockaddr*)&client->addr, &client->addr_len);
 			if (client->handle == INVALID_SOCKET) {
