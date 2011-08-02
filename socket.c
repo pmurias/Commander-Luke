@@ -172,7 +172,7 @@ void clientsocket_select(ClientSocket *client)
 	tv.tv_sec = 0;
 	tv.tv_usec = 1000;
 	
-	if (select(0, &client->read_set, &client->write_set, &client->exc_set, &tv) > 0) {
+	if (select(FD_SETSIZE, &client->read_set, &client->write_set, &client->exc_set, &tv) > 0) {
 		if (FD_ISSET(client->socket->handle, &client->read_set)) {			
 			ZeroMemory(readBuffer, SOCK_BUFFER_LEN);
 			int num_bytes_read = recv(client->socket->handle, readBuffer, SOCK_BUFFER_LEN, 0);
