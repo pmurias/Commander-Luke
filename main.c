@@ -15,8 +15,7 @@ int g_tileHeigth = 80;
 
 void blit(Texture *tex, int x, int y)
 {	
-	if (x + tex->width >= 0 && x <= g_screenWidth && y + tex->height >= 0 && y <= g_screenHeight)
-	{							
+	if (x + tex->width >= 0 && x <= g_screenWidth && y + tex->height >= 0 && y <= g_screenHeight) {							
 		glBindTexture(GL_TEXTURE_2D, tex->handle);
 		glBegin(GL_QUADS);
 		glTexCoord2f(0, 0);
@@ -27,7 +26,7 @@ void blit(Texture *tex, int x, int y)
 		glVertex2f(x+tex->width, y+tex->height);
 		glTexCoord2f(1, 0);
 		glVertex2f(x+tex->width, y);
-		glEnd();				
+		glEnd();			
 	}
 }
 
@@ -87,7 +86,7 @@ void draw_tilemap(TileMap *map, Camera *cam, Texture *tileset)
 				Texture *tile = &tileset[map->tiles[(int)(map->width * tileY + tileX)]];
 				float scrX, scrY;
 				tile_to_screen(tileX - tCamX, tileY - tCamY, &scrX, &scrY);
-				blit(tile, offX + scrX + g_screenWidth/2 - 80, offY + scrY+g_screenHeight/2 - (tile->height - 40));
+				blit(tile, round(offX + scrX + g_screenWidth/2 - 80), round(offY + scrY+g_screenHeight/2 - (tile->height - 40)));
 			}
 		}
 }
@@ -121,18 +120,18 @@ int main()
 	camera.dx = 0;
 	camera.dy = 0;
 	camera.view = 9;
-	
-	init_tilemap(&map, 100, 100);
 		
+	init_tilemap(&map, 100, 100);	
+	
 	image_load_from_file(&images[0], "./data/tiles/template.png");
 	image_load_from_file(&images[1], "./data/tiles/grass1.png");
 	image_load_from_file(&images[2], "./data/tiles/walln.png");		
-	for (int i = 0; i < 3; i++) texture_create_from_image(&textures[i], &images[i]);
+	for (int i = 0; i < 3; i++) texture_create_from_image(&textures[i], &images[i]);	
 
 	while (1) 
 	{
 		if (glfwGetKey('X'))
-			break;
+			break;	
 		
 		if (glfwGetKey(GLFW_KEY_RIGHT))
 			camera.dx += (3.0 - camera.dx) * 0.1;
