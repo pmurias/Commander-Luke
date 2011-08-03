@@ -16,8 +16,10 @@ typedef struct
 	int height;
 } Texture;
 
-extern int image_load_from_file(Image *img, char *name);
+int image_load_from_file(Image *img, char *name);
+int image_free(Image *img);
 
-extern int texture_create_from_image(Texture *tex, Image *img);
+int texture_from_image(Texture *tex, Image *img);
+
 
 #endif

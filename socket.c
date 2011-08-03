@@ -11,6 +11,7 @@
 	#include <ws2tcpip.h>
 #else
 	#include <netinet/ip.h>
+	#include <netinet/tcp.h>
 	#include <arpa/inet.h>
 	#include <sys/types.h>
 	#include <sys/socket.h>
@@ -19,6 +20,7 @@
 	#define SOCKET int
 	#define INVALID_SOCKET -1
 	#define SOCKET_ERROR -1
+	#define SD_SEND SHUT_WR
 	#define closesocket(s) close(s);
 #endif
 

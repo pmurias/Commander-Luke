@@ -48,7 +48,13 @@ int image_load_from_file(Image *img, char *name)
 }
 
 //-----------------------------------------------------------------------------
-int texture_create_from_image(Texture *tex, Image *img)
+int image_free(Image *img)
+{
+	free(img->pixels);	
+}
+
+//-----------------------------------------------------------------------------
+int texture_from_image(Texture *tex, Image *img)
 {	
 	tex->width = img->width;
 	tex->height = img->height;
