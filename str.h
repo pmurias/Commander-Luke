@@ -10,12 +10,16 @@ typedef struct
 	uint16_t len;
 } Str;
 
-extern void str_init(Str *str);
-extern void str_free(Str *str);
-extern uint32_t str_hash(const char *val, uint16_t len);
-extern void str_set(Str *str, char *val);
-extern void  str_cpy(Str *dst, Str *src);
-extern uint32_t str_cmp(Str *str0, Str *str1);
+Str *new_str();
+void str_init(Str *str);
+void str_free(Str *str);
+uint32_t str_hash(const char *val, uint16_t len);
+void str_nset(Str *str, char *val, int n);
+void str_set(Str *str, char *val);
+void  str_cpy(Str *dst, Str *src);
+uint32_t str_cmp(Str *str0, Str *str1);
+void str_append(Str *dst, Str *str);
+void str_nappend(Str *dst, char *val, int n);
 
 
 #endif // __STR_H__

@@ -28,7 +28,7 @@
 #define ZeroMemory(a, c) (memset((a), 0, (c)))
 #endif
 
-#define SOCK_BUFFER_LEN 8
+#define SOCK_BUFFER_LEN 256
 #define MAX_CLIENTS 64
 
 /* socket buffer is single linked list */
@@ -39,18 +39,18 @@ typedef struct _SocketBufferChunk
 	struct _SocketBufferChunk *next;
 } SocketBufferChunk;
 
-typedef struct _SocketBuffer
+typedef struct
 {
 	SocketBufferChunk *first_chunk;
 	SocketBufferChunk *last_chunk;
 } SocketBuffer;
 
-struct _Socket
+typedef struct
 {
 	SOCKET handle;
 	struct sockaddr_in addr;
 	socklen_t addr_len;
-};
+} Socket;
 
 struct _ServerSocket
 {
@@ -395,15 +395,16 @@ void serversocket_select(ServerSocket *server)
 				printf("Socket error: Could not accept connection.\n");
 			}
 			
-			if (server->accept_handler(server, client)) 
+			int conn = 0;
+			for (; conn<MAX_CLIENTS; ++conn) {
+				if (server->clients[conn] == NULL) {					
+					break;
+				}
+			}				
+			if (conn != MAX_CLIENTS && server->accept_handler(server, conn)) 
 			{
-				socket_non_block(client);				
-				for (int i=0; i<MAX_CLIENTS; ++i) {
-					if (server->clients[i] == NULL) {
-						server->clients[i] = client;
-						break;
-					}
-				}				
+				server->clients[conn] = client;
+				socket_non_block(client);								
 			}
 			/* else refuse connection */
 		}
@@ -429,13 +430,13 @@ void serversocket_select(ServerSocket *server)
 					}
 					
 					if (server->disconnect_handler) {
-						server->disconnect_handler(server, server->clients[i], num_bytes_read == 0);
+						server->disconnect_handler(server, i, num_bytes_read == 0);
 					}
 					
 					serversocket_free_connection(server, i);
 					continue;
 				} else {
-					server->read_handler(server, server->clients[i], readBuffer, num_bytes_read);
+					server->read_handler(server, i, readBuffer, num_bytes_read);
 				}
 			}
 			
@@ -485,18 +486,6 @@ void serversocket_set_handlers(ServerSocket *server,
 	server->read_handler = readHandler;
 	server->accept_handler = acceptHandler;
 	server->disconnect_handler = disconnectHandler;
-}
-
-//-----------------------------------------------------------------------------
-int serversocket_get_connection(ServerSocket *server, Socket *client)
-{
-	int i;
-	for (i = 0; i<MAX_CLIENTS; ++i) {
-		if (server->clients[i] == client) {
-			break;
-		}
-	}
-	return i != MAX_CLIENTS ? i : -1;
 }
 
 //-----------------------------------------------------------------------------

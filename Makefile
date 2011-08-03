@@ -17,7 +17,6 @@ OBJECTS=$(SOURCES:.c=.o)
 
 Release: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CLIBS) -o luke
-	$(CC) -std=gnu99 -Wall -O2 socket.c test_socket.c $(CLIBS) -o test_socket
 
 %.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
