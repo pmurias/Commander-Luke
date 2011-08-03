@@ -33,6 +33,12 @@
 #define SOCK_BUFFER_LEN 256
 #define MAX_CLIENTS 64
 
+struct _SockAddr
+{
+	struct sockaddr_in addr;
+	socklen_t len;
+};
+
 /* socket buffer is single linked list */
 typedef struct _SocketBufferChunk
 {
@@ -47,14 +53,13 @@ typedef struct
 	SocketBufferChunk *last_chunk;
 } SocketBuffer;
 
-typedef struct
+typedef struct _Socket
 {
 	SOCKET handle;
-	struct sockaddr_in addr;
-	socklen_t addr_len;
+	SockAddr addr;
 } Socket;
 
-struct _ServerSocket
+struct _TcpServer
 {
 	Socket *socket;		
 	Socket *clients[MAX_CLIENTS];
@@ -62,20 +67,20 @@ struct _ServerSocket
 	fd_set read_set;
 	fd_set write_set;
 	fd_set exc_set;
-	ServerReadHandler read_handler;
-	ServerAcceptHandler accept_handler;
-	ServerDisconnectHandler disconnect_handler;
+	TcpServerReadHandler read_handler;
+	TcpServerAcceptHandler accept_handler;
+	TcpServerDisconnectHandler disconnect_handler;
 };
 
-struct _ClientSocket
+struct _TcpClient
 {
 	Socket *socket;
 	SocketBuffer write_buffer;	
 	fd_set read_set;
 	fd_set write_set;
 	fd_set exc_set;
-	ClientReadHandler read_handler;
-	ClientDisconnectHandler disconnect_handler;
+	TcpClientReadHandler read_handler;
+	TcpClientDisconnectHandler disconnect_handler;
 	int is_connected;
 };
 
@@ -140,7 +145,7 @@ void socket_cleanup()
 }
 
 //-----------------------------------------------------------------------------
-static Socket *new_socket()
+static Socket *new_tcpsocket()
 {
 	Socket *sock = malloc(sizeof(Socket));
 	ZeroMemory(sock, sizeof(Socket));
@@ -150,8 +155,8 @@ static Socket *new_socket()
 		printf("Socket error: Cannot create socket.\n");
 		exit(1);
 	}
-	sock->addr_len = sizeof(sock->addr);
-	ZeroMemory(&sock->addr, sizeof(sock->addr));
+	sock->addr.len = sizeof(sock->addr.addr);
+	ZeroMemory(&sock->addr.addr, sizeof(sock->addr.addr));
 	return sock;
 }
 
@@ -164,29 +169,38 @@ static void socket_non_block(Socket *socket)
 	#else
 	unsigned long iMode=1;
 	ioctlsocket(socket->handle,FIONBIO,&iMode);
-	#endif
-	/* speed up small packet transmission by disabling Nagel */
-	char optval;
-	setsockopt(socket->handle, IPPROTO_TCP, TCP_NODELAY, (char*)&optval, sizeof(int));
+	#endif	
 }
 
 //-----------------------------------------------------------------------------
-ClientSocket *new_clientsocket()
+static void sockaddr_from_ip(SockAddr *addr, char *ip, int port)
 {
-	ClientSocket *client = malloc(sizeof(ClientSocket));
+	ZeroMemory(&addr->addr, sizeof(addr->addr));
+	addr->addr.sin_family = AF_INET;
+	addr->addr.sin_port = htons(port);
+	struct addrinfo *res;
+	getaddrinfo(ip, NULL, NULL, &res);
+	struct sockaddr_in *ai_addr = (struct sockaddr_in *)res->ai_addr;
+	addr->addr.sin_addr.s_addr = ai_addr->sin_addr.s_addr;	
+}
+
+//-----------------------------------------------------------------------------
+int sockaddr_cmp(SockAddr *a, SockAddr *b) {
+	return a->len == b->len && memcmp(a, b, a->len) == 0;
+}
+
+//-----------------------------------------------------------------------------
+TcpClient *new_tcpclient()
+{
+	TcpClient *client = malloc(sizeof(TcpClient));
 	return client;
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_init(ClientSocket *client, int servPort, char *servIp)
+void tcpclient_init(TcpClient *client, int servPort, char *servIp)
 {	
-	client->socket = new_socket();
-	client->socket->addr.sin_family = AF_INET;
-	client->socket->addr.sin_port = htons(servPort);
-	struct addrinfo *res;
-	getaddrinfo(servIp, NULL, NULL, &res);
-	struct sockaddr_in *ai_addr = (struct sockaddr_in *)res->ai_addr;
-	client->socket->addr.sin_addr.s_addr = ai_addr->sin_addr.s_addr;	
+	client->socket = new_tcpsocket();
+	sockaddr_from_ip(&client->socket->addr, servIp, servPort);
 	
 	client->write_buffer.first_chunk = NULL;
 	client->write_buffer.last_chunk = NULL;
@@ -196,14 +210,14 @@ void clientsocket_init(ClientSocket *client, int servPort, char *servIp)
 }
 
 //-----------------------------------------------------------------------------
-int clientsocket_connect(ClientSocket *client)
+int tcpclient_connect(TcpClient *client)
 {
 	if (client->read_handler == NULL) {
 		printf("Socket error: Read handler not given.\n");
 		return 0;
 	}
 	
-	if (connect(client->socket->handle, (struct sockaddr*)&client->socket->addr, client->socket->addr_len) == SOCKET_ERROR) {
+	if (connect(client->socket->handle, (struct sockaddr*)&client->socket->addr.addr, client->socket->addr.len) == SOCKET_ERROR) {
 		printf("Socket error: Could not connect.\n");
 		return 0;
 	}
@@ -213,7 +227,7 @@ int clientsocket_connect(ClientSocket *client)
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_init_sets(ClientSocket *client)
+void tcpclient_init_sets(TcpClient *client)
 {
 	FD_ZERO(&client->read_set);
 	FD_ZERO(&client->write_set);
@@ -227,10 +241,10 @@ void clientsocket_init_sets(ClientSocket *client)
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_select(ClientSocket *client)
+void tcpclient_select(TcpClient *client)
 {
 	static char readBuffer[SOCK_BUFFER_LEN];
-	clientsocket_init_sets(client);	
+	tcpclient_init_sets(client);	
 	struct timeval tv;
 	
 	tv.tv_sec = 0;
@@ -281,20 +295,20 @@ void clientsocket_select(ClientSocket *client)
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_write(ClientSocket *client, char *buf, int len)
+void tcpclient_write(TcpClient *client, char *buf, int len)
 {	
 	socketbuffer_load_data(&client->write_buffer, buf, len);
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_set_handlers(ClientSocket *client, ClientReadHandler readHandler, ClientDisconnectHandler disconnectHandler)
+void tcpclient_set_handlers(TcpClient *client, TcpClientReadHandler readHandler, TcpClientDisconnectHandler disconnectHandler)
 {
 	client->read_handler = readHandler;
 	client->disconnect_handler = disconnectHandler;
 }
 
 //-----------------------------------------------------------------------------
-void clientsocket_close(ClientSocket *client)
+void tcpclient_close(TcpClient *client)
 {
 	shutdown(client->socket->handle, SD_SEND);
 	closesocket(client->socket->handle);
@@ -310,27 +324,27 @@ void clientsocket_close(ClientSocket *client)
 }
 
 //-----------------------------------------------------------------------------
-int clientsocket_is_connected(ClientSocket *client)
+int tcpclient_is_connected(TcpClient *client)
 {
 	return client->is_connected;
 }
 
 //-----------------------------------------------------------------------------
-ServerSocket *new_serversocket()
+TcpServer *new_tcpserver()
 {
-	ServerSocket *server = malloc(sizeof(ServerSocket));
+	TcpServer *server = malloc(sizeof(TcpServer));
 	return server;
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_init(ServerSocket *server, int port)
+void tcpserver_init(TcpServer *server, int port)
 {			
-	server->socket = new_socket();
-	server->socket->addr.sin_family = AF_INET;
-	server->socket->addr.sin_port = htons(port);
-	server->socket->addr.sin_addr.s_addr = htonl(INADDR_ANY);	
+	server->socket = new_tcpsocket();
+	server->socket->addr.addr.sin_family = AF_INET;
+	server->socket->addr.addr.sin_port = htons(port);
+	server->socket->addr.addr.sin_addr.s_addr = htonl(INADDR_ANY);	
 		
-	if (bind(server->socket->handle, (struct sockaddr*)&server->socket->addr, server->socket->addr_len) == SOCKET_ERROR) {
+	if (bind(server->socket->handle, (struct sockaddr*)&server->socket->addr.addr, server->socket->addr.len) == SOCKET_ERROR) {
 		printf("Socket error: Bind error.\n");
 		closesocket(server->socket->handle);
 		exit(1);
@@ -344,7 +358,7 @@ void serversocket_init(ServerSocket *server, int port)
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_init_sets(ServerSocket *server)
+void tcpserver_init_sets(TcpServer *server)
 {
 	FD_ZERO(&server->read_set);
 	FD_ZERO(&server->write_set);
@@ -368,7 +382,7 @@ void serversocket_init_sets(ServerSocket *server)
 }
 
 //-----------------------------------------------------------------------------
-static void serversocket_free_connection(ServerSocket *server, int c)
+static void tcpserver_free_connection(TcpServer *server, int c)
 {	
 	socketbuffer_free(&server->write_buffers[c]);
 	free(server->clients[c]);
@@ -376,10 +390,10 @@ static void serversocket_free_connection(ServerSocket *server, int c)
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_select(ServerSocket *server)
+void tcpserver_select(TcpServer *server)
 {
 	static char readBuffer[SOCK_BUFFER_LEN];
-	serversocket_init_sets(server);
+	tcpserver_init_sets(server);
 	Socket *client = NULL;	
 	struct timeval tv;
 	
@@ -391,8 +405,8 @@ void serversocket_select(ServerSocket *server)
 		/* new connection is waiting for accept */
 		if (FD_ISSET(server->socket->handle, &server->read_set)) 
 		{                        
-			client = new_socket();
-			client->handle = accept(server->socket->handle, (struct sockaddr*)&client->addr, &client->addr_len);
+			client = new_tcpsocket();
+			client->handle = accept(server->socket->handle, (struct sockaddr*)&client->addr.addr, &client->addr.len);
 			if (client->handle == INVALID_SOCKET) {
 				printf("Socket error: Could not accept connection.\n");
 			}
@@ -435,7 +449,7 @@ void serversocket_select(ServerSocket *server)
 						server->disconnect_handler(server, i, num_bytes_read == 0);
 					}
 					
-					serversocket_free_connection(server, i);
+					tcpserver_free_connection(server, i);
 					continue;
 				} else {
 					server->read_handler(server, i, readBuffer, num_bytes_read);
@@ -459,14 +473,14 @@ void serversocket_select(ServerSocket *server)
 			if (FD_ISSET(server->clients[i]->handle, &server->exc_set))
 			{
 				printf("Socket: client exception.\n");
-				serversocket_free_connection(server, i);		
+				tcpserver_free_connection(server, i);		
 			}
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_listen(ServerSocket *server)
+void tcpserver_listen(TcpServer *server)
 {
 	if (server->read_handler == NULL || server->accept_handler == NULL) {
 		printf("Socket: Read or Accept handler not given.\n");
@@ -482,8 +496,8 @@ void serversocket_listen(ServerSocket *server)
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_set_handlers(ServerSocket *server, 
-	ServerReadHandler readHandler, ServerAcceptHandler acceptHandler, ServerDisconnectHandler disconnectHandler)
+void tcpserver_set_handlers(TcpServer *server, 
+	TcpServerReadHandler readHandler, TcpServerAcceptHandler acceptHandler, TcpServerDisconnectHandler disconnectHandler)
 {
 	server->read_handler = readHandler;
 	server->accept_handler = acceptHandler;
@@ -491,15 +505,141 @@ void serversocket_set_handlers(ServerSocket *server,
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_write(ServerSocket *server, int connection, char *buf, int len)
+void tcpserver_write(TcpServer *server, int connection, char *buf, int len)
 {	
 	socketbuffer_load_data(&server->write_buffers[connection], buf, len);
 }
 
 //-----------------------------------------------------------------------------
-void serversocket_close_connection(ServerSocket *server, int connection)
+void tcpserver_close_connection(TcpServer *server, int connection)
 {
 	shutdown(server->clients[connection]->handle, SD_SEND);
 	closesocket(server->clients[connection]->handle);
-	serversocket_free_connection(server, connection);
+	tcpserver_free_connection(server, connection);
 }
+
+
+
+
+
+//-----------------------------------------------------------------------------
+//-------------------------------U----D----P-----------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+static int updPacketSize = 1024;
+
+struct _SockAddrs
+{
+	SockAddr *clients;
+	int *active;
+	int max;
+};
+
+//-----------------------------------------------------------------------------
+SockAddrs *new_sockaddrs(int max)
+{
+	SockAddrs *sa = malloc(sizeof(SockAddrs));
+	sa->clients = malloc(sizeof(SockAddr) * max);
+	sa->active = malloc(sizeof(int) * max);
+	sa->max = max;	
+	ZeroMemory(sa->active, sizeof(int) * max);
+	return sa;
+}
+
+//-----------------------------------------------------------------------------
+int sockaddrs_add(SockAddrs *list, SockAddr *addr)
+{
+	/* some kind of hashmap here would be better ! */
+	for (int i = 0; i < list->max; i++) {
+		if (list->active[i] && sockaddr_cmp(addr, &list->clients[i])) {
+			return i;
+		}
+	}
+	/* not found, add to list and get id */
+	for (int i = 0; i < list->max; i++) {
+		if (!list->active[i]) {
+			memcpy(&list->clients[i], addr, sizeof(SockAddr));
+			list->active[i] = 1;
+			return i;
+		}
+	}
+	return -1;
+}
+
+//-----------------------------------------------------------------------------
+SockAddr *sockaddrs_get(SockAddrs *list, int i)
+{
+	if (list->active[i])
+		return &list->clients[i];
+	return NULL;
+}
+
+//-----------------------------------------------------------------------------
+void udpsocket_set_packet_size(int size)
+{
+	updPacketSize = size;
+}
+
+//-----------------------------------------------------------------------------
+UdpSocket *new_udpsocket(char *ip, int port)
+{
+	UdpSocket *sock = malloc(sizeof(Socket));
+	ZeroMemory(sock, sizeof(Socket));
+	
+	sock->handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (sock->handle == INVALID_SOCKET) {
+		printf("Socket error: Cannot create udp socket.\n");
+		exit(1);
+	}
+	sock->addr.len = sizeof(sock->addr.addr);
+	sockaddr_from_ip(&sock->addr, ip, port);
+	socket_non_block(sock);
+	return sock;
+}
+
+//-----------------------------------------------------------------------------
+void udpsocket_listen(UdpSocket *sock)
+{
+	if (bind(sock->handle, (struct sockaddr *)&sock->addr.addr, sock->addr.len) == SOCKET_ERROR) {
+		printf("Udp error: Cannot bind socket.\n");		
+	}	
+}
+
+//-----------------------------------------------------------------------------
+int udpsocket_read(UdpSocket *sock, char *buf, SockAddr **sender)
+{
+	SockAddr *naddr;
+	if (*sender == NULL) {
+		naddr = malloc(sizeof(SockAddr));
+		naddr->len = sizeof(naddr->addr);
+		ZeroMemory(&naddr->addr, naddr->len);		
+		*sender = naddr;
+	} else {
+		naddr = *sender;
+	}
+	
+	int num_bytes = recvfrom(sock->handle, buf, updPacketSize, 0, (struct sockaddr *)&naddr->addr, &naddr->len);	
+	if (num_bytes == SOCKET_ERROR) {
+		//printf("Socket error: Cannot read from udp socket\n");
+		return -1;
+	} else printf("%s\n", buf);
+	return num_bytes;
+}
+
+//-----------------------------------------------------------------------------
+void udpsocket_write(UdpSocket *sock, char *buf, int len, SockAddr *addr)
+{
+	int num_bytes = sendto(sock->handle, buf, len, 0, (struct sockaddr *)&addr->addr, addr->len);
+	if (num_bytes == SOCKET_ERROR) {
+		printf("Socket error: Cannot write to udp socket.\n");		
+	}
+}
+
+//-----------------------------------------------------------------------------
+SockAddr *udpsocket_get_addr(UdpSocket *sock)
+{
+	return &sock->addr;
+}
+
+

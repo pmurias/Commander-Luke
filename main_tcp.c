@@ -126,100 +126,128 @@ void start_opengl()
 
 typedef struct
 {
-	int mx;
-	int my;
-	int ready_mx;
-	int ready_my;
+	int mouse_x;
+	int mouse_y;
 	int ready;
-	int active;	
-	int start_frame;
-} CommonData;
+	int active;
+	Str *cmd;
+} Server_ClientData;
 
-CommonData s_clients[64];
-char sockbuf[1024];
-SockAddr *caddr = NULL;
+Server_ClientData s_clients[64];
+int s_actives = 0;
+
+int server_accept(ServerSocket *server, int conn)
+{
+	printf("Client %d connected...\b", conn);	
+	s_clients[conn].active = 1;
+	s_clients[conn].ready = 0;
+	s_actives++;
+	return 1;
+}
+
+void server_read(ServerSocket *server, int conn, char *buf, int len)
+{
+	for (int i=0; i < len; i++) {
+		if (buf[i] == '\n') {
+			/* process command */
+			sscanf(s_clients[conn].cmd->val, "%d %d", &s_clients[conn].mouse_x, &s_clients[conn].mouse_y);
+			s_clients[conn].ready = 1;
+			printf("Received (%d, %d) from %d\n", s_clients[conn].mouse_x, s_clients[conn].mouse_y, conn);
+			/* end process */
+			str_set(s_clients[conn].cmd, "");
+		}
+		else {
+			str_nappend(s_clients[conn].cmd, buf + i, 1);
+		}
+	}	
+}
+
+void server_disconnect(ServerSocket *server, int conn, int gracefully)
+{
+	printf("Client %d left...\n", conn);
+	s_clients[conn].active = 0;
+	s_actives--;
+}
 
 void server_func()
 {	
-	glfwInit();	
+	for (int i=0; i<64; i++) {
+		s_clients[i].cmd = new_str();
+	}
 	
-	SockAddrs *clients = new_sockaddrs(64);
-	UdpSocket *server = new_udpsocket("127.0.0.1", 1234);
-	udpsocket_listen(server);
+	ServerSocket *server = new_serversocket();
+	serversocket_init(server, 1234);
+	serversocket_set_handlers(server, &server_read, &server_accept, &server_disconnect);
+	serversocket_listen(server);
 	
 	printf("Server listens...\n");
 	
-	int currFrame = 0;
-	double lastSendTime = glfwGetTime();
-	
-	while (1) {				
-		/* Try read something */
-		memset(sockbuf, 0, 1024);
-		int n = udpsocket_read(server, sockbuf, &caddr);
-		if (n > 0) {
-			int clt = sockaddrs_add(clients, caddr);
-			/* process message */
-			int f, mx, my;
-			sscanf(sockbuf, "%d %d %d", &f, &mx, &my);
-			
-			if (!s_clients[clt].active) {
-				s_clients[clt].active = 1;
-				s_clients[clt].start_frame = currFrame;
-			}
-			/* check if it isn't missed message */
-			if (s_clients[clt].start_frame  + f == currFrame) {
-				s_clients[clt].mx = mx;
-				s_clients[clt].my = my;
-				s_clients[clt].ready = 1;
-			}
-		}
-				
-		/* check if all clients reported current frame */
+	while (1) {
+		serversocket_select(server);
+		
 		int all_ready = 1;
 		for (int i = 0; i<64; i++) {
 			if (s_clients[i].active && !s_clients[i].ready) all_ready = 0;			
 		}
 		
-		/* if so, we can swap current 'broadcast' data  */
-		if (all_ready) {
-			int actives = 0;
-			for (int i=0; i<64; i++) {
+		if (all_ready && s_actives > 0) {				
+		//	printf("All clients reported. Replying...\n");
+			char buffer[255];
+			for (int i = 0; i<64; i++) {				
 				if (s_clients[i].active) {
-					s_clients[i].ready_mx = s_clients[i].mx;
-					s_clients[i].ready_my = s_clients[i].my;
+					memset(buffer, 0, 255);
+					sprintf(buffer, "%d %d %d\n", i, s_clients[i].mouse_x, s_clients[i].mouse_y);
+					for (int j=0; j<64; j++) {
+						if (s_clients[j].active) {							
+							serversocket_write(server, j, buffer, strlen(buffer));							
+						}
+					}
 					s_clients[i].ready = 0;
-					actives++;
 				}
-			}			
-			if (actives > 0) {
-				currFrame++;	
-				printf("Entered frame %d\n", currFrame);
 			}
 		}
 		
-		if (glfwGetTime() > lastSendTime + 0.02) {
-			for (int i = 0; i<64; i++) {				
-				if (s_clients[i].active) {				
-					for (int j=0; j<64; j++) {
-						if (s_clients[j].active) {
-							int frameNoAtJ = currFrame-1-s_clients[j].start_frame;
-							memset(sockbuf, 0, 1024);						
-							sprintf(sockbuf, "%d %d %d %d", i, frameNoAtJ, s_clients[i].ready_mx, s_clients[i].ready_my);
-							udpsocket_write(server, sockbuf, strlen(sockbuf), sockaddrs_get(clients, j));						
-						}
-					}				
-				}
-			}				
-			lastSendTime = glfwGetTime();
-		}
 	}
 }
 
 //***************************************************************************************
+Str *c_buf;
+
+void client_read(ClientSocket *client, char *buf, int len)
+{
+	for (int i=0; i < len; i++) {
+		if (buf[i] == '\n') {
+			/* process command */
+			int con, mx, my;
+			sscanf(c_buf->val, "%d %d %d", &con, &mx, &my);
+			s_clients[con].mouse_x = mx;
+			s_clients[con].mouse_y = my;
+			s_clients[con].active = 1;
+			s_clients[con].ready = 1;
+			printf("Received %d -> (%d, %d)\n", con, s_clients[con].mouse_x, s_clients[con].mouse_y);
+			/* end process */
+			str_set(c_buf, "");
+		}
+		else {
+			str_nappend(c_buf, buf + i, 1);
+		}
+	}	
+}
+
+void client_disconnect(ClientSocket *client)
+{
+	exit(1);
+}
 
 void client_func(char *ip)
 {
-	UdpSocket *socket = new_udpsocket(ip, 1234);		
+	c_buf = new_str();
+	
+	ClientSocket *socket = new_clientsocket();
+	clientsocket_init(socket, 1234, ip);
+	clientsocket_set_handlers(socket, &client_read, &client_disconnect);
+	printf("Connecting...\n");
+	clientsocket_connect(socket);
 	
 	start_opengl();
 			
@@ -240,68 +268,46 @@ void client_func(char *ip)
 	g_mouseTexture = texture_from_file("./data/mouse.png");
 	
 	double lastSendTime = glfwGetTime();
+	double fpsTimer = glfwGetTime();
+	int frames = 0;
 		
-	int currFrame = 0;
-	int ready_mx = 0;
-	int ready_my = 0;
-	
 	while (1) 
 	{
-		/* Try read something */
-		memset(sockbuf, 0, 1024);
-		int n = udpsocket_read(socket, sockbuf, &caddr);
-		if (n > 0) {
-			/* !! should check if caddr is really our server !! */
-			
-			/* process message */
-			int clt, f, mx, my;
-			sscanf(sockbuf, "%d %d %d %d", &clt, &f, &mx, &my);
-			
-			if (f == currFrame) {
-				if (s_clients[clt].active == 0)
-					s_clients[clt].active = 1;
-				s_clients[clt].mx = mx;
-				s_clients[clt].my = my;
-				s_clients[clt].ready = 1;
-			}
-		}
-		
-		/* check if all co-clients reported current frame */
-		int all_ready = 1;
-		for (int i = 0; i<64; i++) {
-			if (s_clients[i].active && !s_clients[i].ready) all_ready = 0;			
-		}
-		
 		int mouseX, mouseY;
 		glfwGetMousePos(&mouseX, &mouseY);
-		
-		if (all_ready) {
-			int actives =0;
-			for (int i = 0; i<64; i++) {
-				if (s_clients[i].active) {
-					s_clients[i].ready_mx = s_clients[i].mx;
-					s_clients[i].ready_my = s_clients[i].my;
-					s_clients[i].ready = 0;				
-					actives++;
+		if (glfwGetTime() > lastSendTime + 0.05) {
+			while (1) {					
+				clientsocket_select(socket);
+				
+				int all_ready = 1;
+				for (int i=0; i<64; i++) {
+					if (s_clients[i].active && !s_clients[i].ready) all_ready = 0;
+				}
+				
+				if (all_ready)
+					break;
+							
+				if (glfwGetTime() > lastSendTime + 1.0) {
+					for (int i=0; i<64; i++) {
+						if (s_clients[i].active && !s_clients[i].ready) s_clients[i].active = 0;
+					}
+					break;
 				}
 			}
-			if (actives > 0) {
-				currFrame++;
-				printf("Entered frame %d\n", currFrame);
-			}
-			ready_mx = mouseX;
-			ready_my = mouseY;
+		
+			char buf[255];
+			memset(buf, 0, 255);
+			sprintf(buf, "%d %d\n", mouseX, mouseY);		
+			clientsocket_write(socket, buf, strlen(buf));
+			lastSendTime = glfwGetTime();
+			frames++;
 		}
-						
-		if (glfwGetTime() > lastSendTime + 0.02) {
-
-					
-			memset(sockbuf, 0, 1024);
-			sprintf(sockbuf, "%d %d %d\n", currFrame, ready_mx, ready_my);		
-			udpsocket_write(socket, sockbuf, strlen(sockbuf), udpsocket_get_addr(socket));
-			lastSendTime = glfwGetTime();			
+		if (glfwGetTime() > fpsTimer + 1.0) {
+			printf("FPS: %d\n", frames);
+			frames = 0;
+			fpsTimer = glfwGetTime();
 		}
-				
+		
 		if (glfwGetKey('X'))
 			break;	
 		
@@ -331,8 +337,9 @@ void client_func(char *ip)
 		
 		for (int i=0; i<64; i++) {
 			if (s_clients[i].active) {
-				blit(g_mouseTexture, s_clients[i].ready_mx, s_clients[i].ready_my);
-			}			
+				blit(g_mouseTexture, s_clients[i].mouse_x, s_clients[i].mouse_y);
+			}
+			s_clients[i].ready = 0;
 		}
 						
 		glfwSwapBuffers();		

@@ -1,36 +1,44 @@
 #ifndef __SOCKET_H__
 #define __SOCKET_H__
 
-struct _ServerSocket;
-typedef struct _ServerSocket ServerSocket;
-struct _ClientSocket;
-typedef struct _ClientSocket ClientSocket;
+struct _SockAddr;
+typedef struct _SockAddr SockAddr;
+struct _SockAddrs;
+typedef struct _SockAddrs SockAddrs;
+struct _Socket;
+typedef struct _Socket UdpSocket;
+struct _TcpServer;
+typedef struct _TcpServer TcpServer;
+struct _TcpClient;
+typedef struct _TcpClient TcpClient;
 
-typedef void (*ServerReadHandler)(ServerSocket *, int, char *, int);
-typedef int (*ServerAcceptHandler)(ServerSocket *, int);
-typedef void (*ServerDisconnectHandler)(ServerSocket *, int, int);
-typedef void (*ClientReadHandler)(ClientSocket *, char *, int);
-typedef void (*ClientDisconnectHandler)(ClientSocket *);
+
+
+typedef void (*TcpServerReadHandler)(TcpServer *, int, char *, int);
+typedef int (*TcpServerAcceptHandler)(TcpServer *, int);
+typedef void (*TcpServerDisconnectHandler)(TcpServer *, int, int);
+typedef void (*TcpClientReadHandler)(TcpClient *, char *, int);
+typedef void (*TcpClientDisconnectHandler)(TcpClient *);
 
 void socket_startup();
 void socket_cleanup();
 
-ServerSocket *new_serversocket();
-void serversocket_init(ServerSocket *server, int port);
-void serversocket_listen(ServerSocket *server);
-void serversocket_select(ServerSocket *server);
-void serversocket_write(ServerSocket *server, int connection, char *buf, int len);
-void serversocket_set_handlers(ServerSocket *server, 
-	ServerReadHandler readHandler, ServerAcceptHandler acceptHandler, ServerDisconnectHandler disconnectHandler);
-void serversocket_close_connection(ServerSocket *server, int connection);
+TcpServer *new_tcpserver();
+void tcpserver_init(TcpServer *server, int port);
+void tcpserver_listen(TcpServer *server);
+void tcpserver_select(TcpServer *server);
+void tcpserver_write(TcpServer *server, int connection, char *buf, int len);
+void tcpserver_set_handlers(TcpServer *server, 
+	TcpServerReadHandler readHandler, TcpServerAcceptHandler acceptHandler, TcpServerDisconnectHandler disconnectHandler);
+void tcpserver_close_connection(TcpServer *server, int connection);
 
-ClientSocket *new_clientsocket();
-void clientsocket_init(ClientSocket *client, int servPort, char *servIp);
-int clientsocket_connect(ClientSocket *client);
-void clientsocket_select(ClientSocket *client);
-void clientsocket_write(ClientSocket *client, char *buf, int len);
-void clientsocket_set_handlers(ClientSocket *client, ClientReadHandler readHandler, ClientDisconnectHandler disconnectHandler);
-void clientsocket_close(ClientSocket *client);
-int clientsocket_is_connected(ClientSocket *client);
+TcpClient *new_tcpclient();
+void tcpclient_init(TcpClient *client, int servPort, char *servIp);
+int tcpclient_connect(TcpClient *client);
+void tcpclient_select(TcpClient *client);
+void tcpclient_write(TcpClient *client, char *buf, int len);
+void tcpclient_set_handlers(TcpClient *client, TcpClientReadHandler readHandler, TcpClientDisconnectHandler disconnectHandler);
+void tcpclient_close(TcpClient *client);
+int tcpclient_is_connected(TcpClient *client);
 
 #endif // __SOCKET_H__

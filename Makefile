@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -std=gnu99 -Wall -O2
+CFLAGS=-c -std=gnu99 -Wall -O2 -Wfatal-errors
 
 ifeq ($(OS),Windows_NT)
 	CLIBS=-lglfw -lopengl32 -lpng -lz -lws2_32
