@@ -15,6 +15,9 @@ SOURCES= \
 	socket.c
 OBJECTS=$(SOURCES:.c=.o)
 
+bench: benchmark.o socket.o str.o
+	$(CC) benchmark.o socket.o str.o $(CLIBS) -o benchmark
+	
 Release: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CLIBS) -o luke
 

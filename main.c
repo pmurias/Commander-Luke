@@ -144,7 +144,8 @@ void server_func()
 	glfwInit();	
 	
 	SockAddrs *clients = new_sockaddrs(64);
-	UdpSocket *server = new_udpsocket("localhost", 1234);
+	caddr = new_sockaddr();
+	UdpSocket *server = new_udpsocket(NULL, 1234);
 	udpsocket_listen(server);
 	
 	printf("Server listens...\n");
@@ -155,7 +156,7 @@ void server_func()
 	while (1) {				
 		/* Try read something */
 		memset(sockbuf, 0, 1024);
-		int n = udpsocket_read(server, sockbuf, &caddr);
+		int n = udpsocket_read(server, sockbuf, caddr);
 		if (n > 0) {
 			int clt = sockaddrs_add(clients, caddr);
 			/* process message */
@@ -222,6 +223,7 @@ void server_func()
 void client_func(char *ip)
 {
 	UdpSocket *socket = new_udpsocket(ip, 1234);
+	caddr = new_sockaddr();
 	
 	start_opengl();
 			
@@ -251,7 +253,7 @@ void client_func(char *ip)
 	{
 		/* Try read something */
 		memset(sockbuf, 0, 1024);
-		int n = udpsocket_read(socket, sockbuf, &caddr);
+		int n = udpsocket_read(socket, sockbuf, caddr);
 		if (n > 0) {
 			/* !! should check if caddr is really our server !! */
 			

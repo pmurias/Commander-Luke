@@ -30,7 +30,7 @@
 #define ZeroMemory(a, c) (memset((a), 0, (c)))
 #endif
 
-#define SOCK_BUFFER_LEN 256
+#define SOCK_BUFFER_LEN 8196
 #define MAX_CLIENTS 64
 
 struct _SockAddr
@@ -177,7 +177,7 @@ static void sockaddr_from_ip(SockAddr *addr, char *ip, int port)
 {
 	ZeroMemory(&addr->addr, sizeof(addr->addr));
 	addr->addr.sin_family = AF_INET;
-	addr->addr.sin_port = htons(port);
+	addr->addr.sin_port = htons(port);	
 	struct addrinfo *res;
 	getaddrinfo(ip, NULL, NULL, &res);
 	struct sockaddr_in *ai_addr = (struct sockaddr_in *)res->ai_addr;
@@ -591,9 +591,17 @@ UdpSocket *new_udpsocket(char *ip, int port)
 	if (sock->handle == INVALID_SOCKET) {
 		printf("Socket error: Cannot create udp socket.\n");
 		exit(1);
-	}
+	}	
 	sock->addr.len = sizeof(sock->addr.addr);
-	sockaddr_from_ip(&sock->addr, ip, port);
+	if (ip == NULL) {
+		ZeroMemory(&sock->addr, sizeof(sock->addr));		
+		sock->addr.addr.sin_family = AF_INET;
+		sock->addr.addr.sin_port = htons(port);
+		sock->addr.addr.sin_addr.s_addr = htonl(INADDR_ANY);		
+		sock->addr.len = sizeof(sock->addr.addr);
+	} else {
+		sockaddr_from_ip(&sock->addr, ip, port);
+	}
 	socket_non_block(sock);
 	return sock;
 }
@@ -607,23 +615,23 @@ void udpsocket_listen(UdpSocket *sock)
 }
 
 //-----------------------------------------------------------------------------
-int udpsocket_read(UdpSocket *sock, char *buf, SockAddr **sender)
+SockAddr *new_sockaddr()
 {
 	SockAddr *naddr;
-	if (*sender == NULL) {
-		naddr = malloc(sizeof(SockAddr));
-		naddr->len = sizeof(naddr->addr);
-		ZeroMemory(&naddr->addr, naddr->len);		
-		*sender = naddr;
-	} else {
-		naddr = *sender;
-	}
-	
+	naddr = malloc(sizeof(SockAddr));
+	naddr->len = sizeof(naddr->addr);
+	ZeroMemory(&naddr->addr, naddr->len);		
+	return naddr;
+}
+
+//-----------------------------------------------------------------------------
+int udpsocket_read(UdpSocket *sock, char *buf, SockAddr *naddr)
+{	
 	int num_bytes = recvfrom(sock->handle, buf, updPacketSize, 0, (struct sockaddr *)&naddr->addr, &naddr->len);	
 	if (num_bytes == SOCKET_ERROR) {
 		//printf("Socket error: Cannot read from udp socket\n");
 		return -1;
-	} else printf("%s\n", buf);
+	};
 	return num_bytes;
 }
 
