@@ -144,7 +144,7 @@ void server_func()
 	glfwInit();	
 	
 	SockAddrs *clients = new_sockaddrs(64);
-	UdpSocket *server = new_udpsocket("127.0.0.1", 1234);
+	UdpSocket *server = new_udpsocket("localhost", 1234);
 	udpsocket_listen(server);
 	
 	printf("Server listens...\n");
@@ -199,7 +199,7 @@ void server_func()
 		}
 		
 		
-		if (glfwGetTime() > lastSendTime + 0.4) {
+		if (glfwGetTime() > lastSendTime + 0.3) {
 			for (int i = 0; i<64; i++) {				
 				if (s_clients[i].active) {				
 					for (int j=0; j<64; j++) {
@@ -221,7 +221,7 @@ void server_func()
 
 void client_func(char *ip)
 {
-	UdpSocket *socket = new_udpsocket(ip, 1234);		
+	UdpSocket *socket = new_udpsocket(ip, 1234);
 	
 	start_opengl();
 			
@@ -297,12 +297,12 @@ void client_func(char *ip)
 			ready_my = mouseY;			
 		}
 						
-		if (glfwGetTime() > lastSendTime + 0.1) {				
+		if (glfwGetTime() > lastSendTime + 0.2) {				
 			memset(sockbuf, 0, 1024);
 			sprintf(sockbuf, "%d %d %d\n", currFrame, ready_mx, ready_my);		
 			udpsocket_write(socket, sockbuf, strlen(sockbuf), udpsocket_get_addr(socket));
 			lastSendTime = glfwGetTime();			
-		}
+		} else continue;
 				
 		if (glfwGetKey('X'))
 			break;	
