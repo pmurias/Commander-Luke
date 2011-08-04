@@ -192,17 +192,19 @@ void server_func()
 				}
 			}			
 			if (actives > 0) {
-				currFrame++;	
-				printf("Entered frame %d\n", currFrame);
+				currFrame++;
+				lastSendTime -= 1.0; // force send
+				printf("Waiting for frame %d\n", currFrame);
 			}
 		}
 		
-		if (glfwGetTime() > lastSendTime + 0.02) {
+		
+		if (glfwGetTime() > lastSendTime + 0.4) {
 			for (int i = 0; i<64; i++) {				
 				if (s_clients[i].active) {				
 					for (int j=0; j<64; j++) {
-						if (s_clients[j].active) {
-							int frameNoAtJ = currFrame-1-s_clients[j].start_frame;
+						if (s_clients[j].active && !s_clients[j].ready) {
+							int frameNoAtJ = currFrame-1-s_clients[j].start_frame;							
 							memset(sockbuf, 0, 1024);						
 							sprintf(sockbuf, "%d %d %d %d", i, frameNoAtJ, s_clients[i].ready_mx, s_clients[i].ready_my);
 							udpsocket_write(server, sockbuf, strlen(sockbuf), sockaddrs_get(clients, j));						
@@ -257,9 +259,10 @@ void client_func(char *ip)
 			int clt, f, mx, my;
 			sscanf(sockbuf, "%d %d %d %d", &clt, &f, &mx, &my);
 			
-			if (f == currFrame) {
-				if (s_clients[clt].active == 0)
-					s_clients[clt].active = 1;
+			if (s_clients[clt].active == 0)
+				s_clients[clt].active = 1;
+					
+			if (f == currFrame) {				
 				s_clients[clt].mx = mx;
 				s_clients[clt].my = my;
 				s_clients[clt].ready = 1;
@@ -287,15 +290,14 @@ void client_func(char *ip)
 			}
 			if (actives > 0) {
 				currFrame++;
-				printf("Entered frame %d\n", currFrame);
+				lastSendTime -= 1.0; // force send
+				printf("Waiting for frame %d\n", currFrame);
 			}
 			ready_mx = mouseX;
-			ready_my = mouseY;
+			ready_my = mouseY;			
 		}
 						
-		if (glfwGetTime() > lastSendTime + 0.02) {
-
-					
+		if (glfwGetTime() > lastSendTime + 0.1) {				
 			memset(sockbuf, 0, 1024);
 			sprintf(sockbuf, "%d %d %d\n", currFrame, ready_mx, ready_my);		
 			udpsocket_write(socket, sockbuf, strlen(sockbuf), udpsocket_get_addr(socket));
