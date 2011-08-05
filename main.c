@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "socket.h"
 #include "str.h"
+#include "camera.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
@@ -47,14 +48,6 @@ void blit(Texture *tex, int x, int y)
 	}
 }
 
-typedef struct
-{
-	float x;
-	float y;
-	float dx;
-	float dy;
-	int view;
-} Camera;
 
 typedef struct
 {
@@ -222,19 +215,17 @@ void server_func()
 
 void client_func(char *ip)
 {
+	/*
 	UdpSocket *socket = new_udpsocket(ip, 1234);
 	caddr = new_sockaddr();
+	*/
 	
 	start_opengl();
 			
-	Camera camera;
 	TileMap map;
+
+	Camera* camera = camera_init();
 	
-	camera.x = 0;
-	camera.y = 0;
-	camera.dx = 0;
-	camera.dy = 0;
-	camera.view = 9;
 		
 	init_tilemap(&map, 100, 100);	
 		
@@ -252,102 +243,96 @@ void client_func(char *ip)
 	while (1) 
 	{
 		/* Try read something */
-		memset(sockbuf, 0, 1024);
-		int n = udpsocket_read(socket, sockbuf, caddr);
-		if (n > 0) {
-			/* !! should check if caddr is really our server !! */
-			
-			/* process message */
-			int clt, f, mx, my;
-			sscanf(sockbuf, "%d %d %d %d", &clt, &f, &mx, &my);
-			
-			if (s_clients[clt].active == 0)
-				s_clients[clt].active = 1;
-					
-			if (f == currFrame) {				
-				s_clients[clt].mx = mx;
-				s_clients[clt].my = my;
-				s_clients[clt].ready = 1;
-			}
-		}
-		
-		/* check if all co-clients reported current frame */
-		int all_ready = 1;
-		for (int i = 0; i<64; i++) {
-			if (s_clients[i].active && !s_clients[i].ready) all_ready = 0;			
-		}
-		
+//		memset(sockbuf, 0, 1024);
+//		int n = udpsocket_read(socket, sockbuf, caddr);
+//		if (n > 0) {
+//			/* !! should check if caddr is really our server !! */
+//			
+//			/* process message */
+//			int clt, f, mx, my;
+//			sscanf(sockbuf, "%d %d %d %d", &clt, &f, &mx, &my);
+//			
+//			if (s_clients[clt].active == 0)
+//				s_clients[clt].active = 1;
+//					
+//			if (f == currFrame) {				
+//				s_clients[clt].mx = mx;
+//				s_clients[clt].my = my;
+//				s_clients[clt].ready = 1;
+//			}
+//		}
+//		
+//		/* check if all co-clients reported current frame */
+//		int all_ready = 1;
+//		for (int i = 0; i<64; i++) {
+//			if (s_clients[i].active && !s_clients[i].ready) all_ready = 0;			
+//		}
+//		
 		int mouseX, mouseY;
 		glfwGetMousePos(&mouseX, &mouseY);
-		
-		if (all_ready) {
-			int actives =0;
-			for (int i = 0; i<64; i++) {
-				if (s_clients[i].active) {
-					s_clients[i].ready_mx = s_clients[i].mx;
-					s_clients[i].ready_my = s_clients[i].my;
-					s_clients[i].ready = 0;				
-					actives++;
-				}
-			}
-			if (actives > 0) {
-				currFrame++;
-				lastSendTime -= 1.0; // force send
-				printf("Waiting for frame %d\n", currFrame);
-			}
-			ready_mx = mouseX;
-			ready_my = mouseY;			
-		}
-						
-		if (glfwGetTime() > lastSendTime + 0.2) {				
-			memset(sockbuf, 0, 1024);
-			sprintf(sockbuf, "%d %d %d\n", currFrame, ready_mx, ready_my);		
-			udpsocket_write(socket, sockbuf, strlen(sockbuf), udpsocket_get_addr(socket));
-			lastSendTime = glfwGetTime();			
-		} else continue;
+//		
+//		if (all_ready) {
+//			int actives =0;
+//			for (int i = 0; i<64; i++) {
+//				if (s_clients[i].active) {
+//					s_clients[i].ready_mx = s_clients[i].mx;
+//					s_clients[i].ready_my = s_clients[i].my;
+//					s_clients[i].ready = 0;				
+//					actives++;
+//				}
+//			}
+//			if (actives > 0) {
+//				currFrame++;
+//				lastSendTime -= 1.0; // force send
+//				printf("Waiting for frame %d\n", currFrame);
+//			}
+//			ready_mx = mouseX;
+//			ready_my = mouseY;			
+//		}
+//						
+//		if (glfwGetTime() > lastSendTime + 0.2) {				
+//			memset(sockbuf, 0, 1024);
+//			sprintf(sockbuf, "%d %d %d\n", currFrame, ready_mx, ready_my);		
+//			udpsocket_write(socket, sockbuf, strlen(sockbuf), udpsocket_get_addr(socket));
+//			lastSendTime = glfwGetTime();			
+//		} else continue;
 				
 		if (glfwGetKey('X'))
 			break;	
 		
-		if (glfwGetKey(GLFW_KEY_RIGHT))
-			camera.dx += (3.0 - camera.dx) * 0.1;
-		if (glfwGetKey(GLFW_KEY_LEFT))
-			camera.dx += (-3.0 - camera.dx) * 0.1;
-		if (glfwGetKey(GLFW_KEY_DOWN))
-			camera.dy += (3.0 - camera.dy) * 0.1;
-		if (glfwGetKey(GLFW_KEY_UP))
-			camera.dy += (-3.0 - camera.dy) * 0.1;
-		camera.x += camera.dx;
-		camera.y += camera.dy;
-		camera.dx *= 0.97;
-		camera.dy *= 0.97;		
 		
 		if (glfwGetMouseButton(0))
 		{			
 			float tileX, tileY;			
-			snap_screen_to_tile(camera.x - g_screenWidth/2 + mouseX, camera.y - g_screenHeight/2 + mouseY, &tileX, &tileY);
-			// map.tiles[(int)(tileY * map.width + tileX)] = 1;
+			snap_screen_to_tile(camera->x - g_screenWidth/2 + mouseX, camera->y - g_screenHeight/2 + mouseY, &tileX, &tileY);
+			//map.tiles[(int)(tileY * map.width + tileX)] = 1;
 		}
+
+		camera_keyboard_control(camera);
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 						
-		draw_tilemap(&map, &camera, g_tileset);
+		draw_tilemap(&map, camera, g_tileset);
 		
+		/*
 		for (int i=0; i<64; i++) {
 			if (s_clients[i].active) {
 				blit(g_mouseTexture, s_clients[i].ready_mx, s_clients[i].ready_my);
 			}			
 		}
+		*/
 						
 		glfwSwapBuffers();		
 	}
 
 	glfwTerminate();
+	camera_free(camera);
 }
 
 int main(int argc, char **argv)
 {
-	socket_startup();
+	client_func(argv[2]);
+	/*socket_startup();
 	
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server")==0) {
@@ -358,6 +343,6 @@ int main(int argc, char **argv)
 		}		
 	}
 	
-	socket_cleanup();
+	socket_cleanup();*/
 	return 0;
 }

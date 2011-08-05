@@ -1,3 +1,4 @@
+all: luke
 CC=gcc
 CFLAGS=-c -std=gnu99 -Wall -O2 -Wfatal-errors
 
@@ -12,13 +13,14 @@ SOURCES= \
 	texture.c \
 	hashmap.c \
 	str.c \
-	socket.c
+	socket.c \
+	camera.c
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o
 	$(CC) benchmark.o socket.o str.o $(CLIBS) -o benchmark
 	
-Release: $(OBJECTS)
+luke: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CLIBS) -o luke
 
 %.o: %.c
