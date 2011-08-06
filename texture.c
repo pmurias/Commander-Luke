@@ -69,3 +69,13 @@ int texture_from_image(Texture *tex, Image *img)
 	return 1;
 }
 
+Texture *texture_from_file(char *fname)
+{
+	Image img;
+	Texture *tex = malloc(sizeof(Texture));
+	
+	image_load_from_file(&img, fname);
+	texture_from_image(tex, &img);
+	image_free(&img);
+	return tex;
+}
