@@ -7,5 +7,6 @@ typedef struct {
     void* (*get_command)(void* data,int *type,int *size);
     void (*logic_tick)(void* data);
     void (*tick)(void* data);
+    void (*cleanup)(void* data);
 } NetworkType;
 #endif

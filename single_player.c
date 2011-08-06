@@ -53,6 +53,17 @@ static void* get_command(void* data,int *type,int *size) {
     return ret->buf;
   }
 }
+static void cleanup(void* data) {
+  SingleData* commands = (SingleData*) data;
+  if (commands->last_buf) free(commands->last_buf);
+
+  SingleCommand* c = commands->first;
+  while (c) {
+    free(c->buf);
+    c = c->next;
+  }
+
+}
 
 NetworkType* single_player_network(void) {
   NetworkType* single = malloc(sizeof(NetworkType));
@@ -60,6 +71,7 @@ NetworkType* single_player_network(void) {
   single->logic_tick = noop;
   single->add_command = add_command;
   single->get_command = get_command;
+  single->cleanup = cleanup;
 
   SingleData* data = (SingleData*)malloc(sizeof(SingleData));
   single->data = (void*)data;

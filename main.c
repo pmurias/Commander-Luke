@@ -223,6 +223,7 @@ void client_loop()
 	glfwSwapBuffers();
     }
 
+    network->cleanup(network->data);
     camera_free(camera);
     engine_free(engine);
     opengl_stop();
