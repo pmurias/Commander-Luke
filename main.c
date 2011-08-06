@@ -156,14 +156,15 @@ void load_assets()
 
 typedef struct {
     void* data;
-    void (*add_command)(void* data,int size,void *command);
-    void* (*get_command)(void* data,int *size);
+    void (*add_command)(void* data,int type,int size,void *command);
+    void* (*get_command)(void* data,int *type,int *size);
     void (*logic_tick)(void* data);
     void (*tick)(void* data);
 } NetworkType;
 
 typedef struct SingleCommand {
     struct SingleCommand* next;
+    int type;
     void* buf;
     int size;
 } SingleCommand;
@@ -175,10 +176,11 @@ typedef struct {
 
 void single_noop(void* data) {
 }
-void single_add_command(void* data,int size,void *buf) {
+void single_add_command(void* data,int type,int size,void *buf) {
   SingleData* commands = (SingleData*) data;
 
   SingleCommand* c = (SingleCommand*) malloc(sizeof(SingleCommand)); 
+  c->type = type;
   c->buf = malloc(size);
   memcpy(c->buf,buf,size);
   c->size = size;
@@ -192,7 +194,7 @@ void single_add_command(void* data,int size,void *buf) {
   }
 }
 
-void* single_get_command(void* data,int *size) {
+void* single_get_command(void* data,int *type,int *size) {
   SingleData* commands = (SingleData*) data;
   if (commands->last_buf) {
     free(commands->last_buf);
@@ -206,6 +208,7 @@ void* single_get_command(void* data,int *size) {
     if (commands->last == ret) {
       commands->last = NULL;
     }
+    *type = ret->type;
     *size = ret->size;
     commands->last_buf = ret->buf;
     return ret->buf;
@@ -256,25 +259,25 @@ void client_loop()
 				camera->y - g_screenHeight / 2 + mouseY,
 				&tileX, &tileY);
 	    if (tileX >= 0 && tileY >= 0) {
-		int command[4];
-		command[0] = 1;
-		command[1] = tileX;
-		command[2] = tileY;
-		command[3] = 1;
-		network->add_command(network->data,sizeof(int)*4,(void*)command);
+		int command[3];
+		command[0] = tileX;
+		command[1] = tileY;
+		command[2] = 1;
+		network->add_command(network->data,1,sizeof(int)*3,(void*)command);
 	    }
 	}
 
 	network->logic_tick(network->data);
 	int size;
+	int type;
 	void* command;
-	while ((command = network->get_command(network->data,&size))) {
-	    switch (*((int*)command)) {
+	while ((command = network->get_command(network->data,&type,&size))) {
+	    switch (type) {
 		case 1: {
 		    int* as_ints = (int*)command;
-		    int tileX = *(as_ints+1);
-		    int tileY = *(as_ints+2);
-		    int type = *(as_ints+3);
+		    int tileX = *as_ints;
+		    int tileY = *(as_ints+1);
+		    int type = *(as_ints+2);
 		    command_set_tile(engine,tileX,tileY,type);
 		    break;
 		}
