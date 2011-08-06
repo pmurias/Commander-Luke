@@ -88,8 +88,8 @@ void draw_tilemap(TileMap * map, Camera * cam, Texture ** tileset)
 	    if (tileX > 0 && tileY > 0 && tileX < map->width
 		&& tileY < map->height) {
 		Texture *tile =
-		    tileset[map->
-			    tiles[(int) (map->width * tileY + tileX)]];
+		    tileset[map->tiles
+			    [(int) (map->width * tileY + tileX)]];
 		float scrX, scrY;
 		tile_to_screen(tileX - tCamX, tileY - tCamY, &scrX, &scrY);
 		blit(tile, round(offX + scrX + g_screenWidth / 2 - 80),
@@ -106,7 +106,7 @@ void opengl_start()
     glfwOpenWindow(g_screenWidth, g_screenHeight, 8, 8, 8, 0, 0, 0,
 		   GLFW_WINDOW);
     glfwSetWindowTitle("Commander Luke");
-    glfwDisable(GLFW_MOUSE_CURSOR);
+    //glfwDisable(GLFW_MOUSE_CURSOR);
 
     glOrtho(0, g_screenWidth, g_screenHeight, 0, -1, 1);
     glDisable(GL_DEPTH_TEST);
@@ -163,19 +163,24 @@ void client_loop()
     Engine *engine = engine_init();
     Camera *camera = camera_init();
     while (1) {
+
 	int mouseX, mouseY;
-//              glfwGetMousePos(&mouseX, &mouseY);
+	glfwGetMousePos(&mouseX, &mouseY);
 
 	if (glfwGetKey('X'))
 	    break;
 
 
-	/*if (glfwGetMouseButton(0))
-	   {                    
-	   float tileX, tileY;                  
-	   snap_screen_to_tile(camera->x - g_screenWidth/2 + mouseX, camera->y - g_screenHeight/2 + mouseY, &tileX, &tileY);
-	   //map.tiles[(int)(tileY * map.width + tileX)] = 1;
-	   } */
+	if (glfwGetMouseButton(0)) {
+	    float tileX, tileY;
+	    snap_screen_to_tile(camera->x - g_screenWidth / 2 + mouseX,
+				camera->y - g_screenHeight / 2 + mouseY,
+				&tileX, &tileY);
+	    if (tileX >= 0 && tileY >= 0) {
+		engine->map->
+		    tiles[(int) (tileY * engine->map->width + tileX)] = 1;
+	    }
+	}
 
 	camera_keyboard_control(camera);
 
