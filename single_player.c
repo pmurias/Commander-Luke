@@ -1,24 +1,24 @@
 #include "network.h"
 #include <stdlib.h>
 #include <string.h>
-typedef struct SingleCommand {
-    struct SingleCommand* next;
+typedef struct Command {
+    struct Command* next;
     int type;
     void* buf;
     int size;
-} SingleCommand;
+} Command;
 typedef struct {
-  SingleCommand* last;
-  SingleCommand* first;
+  Command* last;
+  Command* first;
   void* last_buf;
-} SingleData;
+} Data;
 
 static void noop(void* data) {
 }
 static void add_command(void* data,int type,int size,void *buf) {
-  SingleData* commands = (SingleData*) data;
+  Data* commands = (Data*) data;
 
-  SingleCommand* c = (SingleCommand*) malloc(sizeof(SingleCommand)); 
+  Command* c = (Command*) malloc(sizeof(Command)); 
   c->type = type;
   c->buf = malloc(size);
   memcpy(c->buf,buf,size);
@@ -34,7 +34,7 @@ static void add_command(void* data,int type,int size,void *buf) {
 }
 
 static void* get_command(void* data,int *type,int *size) {
-  SingleData* commands = (SingleData*) data;
+  Data* commands = (Data*) data;
   if (commands->last_buf) {
     free(commands->last_buf);
     commands->last_buf = NULL;
@@ -42,7 +42,7 @@ static void* get_command(void* data,int *type,int *size) {
   if (!commands->first) {
     return NULL; 
   } else {
-    SingleCommand* ret = commands->first;
+    Command* ret = commands->first;
     commands->first = ret->next;
     if (commands->last == ret) {
       commands->last = NULL;
@@ -54,10 +54,10 @@ static void* get_command(void* data,int *type,int *size) {
   }
 }
 static void cleanup(void* data) {
-  SingleData* commands = (SingleData*) data;
+  Data* commands = (Data*) data;
   if (commands->last_buf) free(commands->last_buf);
 
-  SingleCommand* c = commands->first;
+  Command* c = commands->first;
   while (c) {
     free(c->buf);
     c = c->next;
@@ -73,7 +73,7 @@ NetworkType* single_player_network(void) {
   single->get_command = get_command;
   single->cleanup = cleanup;
 
-  SingleData* data = (SingleData*)malloc(sizeof(SingleData));
+  Data* data = (Data*)malloc(sizeof(Data));
   single->data = (void*)data;
   data->last = NULL;
   data->first = NULL;
