@@ -161,7 +161,7 @@ void load_assets()
 void command_set_tile(Engine* engine,int tileX,int tileY,int type) {
   engine->map->tiles[tileY * engine->map->width + tileX] = type;
 }
-void client_loop()
+void client_loop(NetworkType* network)
 {
 
     opengl_start();
@@ -169,7 +169,6 @@ void client_loop()
 
     Engine *engine = engine_init();
     Camera *camera = camera_init();
-    NetworkType* network = single_player_network();
 
     while (1) {
 	network->tick(network->data);
@@ -241,7 +240,7 @@ int main(int argc, char **argv)
 	    usage();
 	}
     } else {
-	client_loop();
+	client_loop(single_player_network());
     }
 
 
