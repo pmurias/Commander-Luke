@@ -8,6 +8,8 @@
 #include "socket.h"
 #include "str.h"
 #include "camera.h"
+#include "network.h"
+#include "single_player.h"
 
 int g_screenWidth = 800;
 int g_screenHeight = 600;
@@ -154,81 +156,7 @@ void load_assets()
     g_tileset[2] = texture_from_file("./data/tiles/walln.png");
 }
 
-typedef struct {
-    void* data;
-    void (*add_command)(void* data,int type,int size,void *command);
-    void* (*get_command)(void* data,int *type,int *size);
-    void (*logic_tick)(void* data);
-    void (*tick)(void* data);
-} NetworkType;
 
-typedef struct SingleCommand {
-    struct SingleCommand* next;
-    int type;
-    void* buf;
-    int size;
-} SingleCommand;
-typedef struct {
-  SingleCommand* last;
-  SingleCommand* first;
-  void* last_buf;
-} SingleData;
-
-void single_noop(void* data) {
-}
-void single_add_command(void* data,int type,int size,void *buf) {
-  SingleData* commands = (SingleData*) data;
-
-  SingleCommand* c = (SingleCommand*) malloc(sizeof(SingleCommand)); 
-  c->type = type;
-  c->buf = malloc(size);
-  memcpy(c->buf,buf,size);
-  c->size = size;
-  c->next = NULL;
-  
-  if (!commands->first) {
-    commands->first = c;
-    commands->last = c;
-  } else {
-    commands->last->next = c;
-  }
-}
-
-void* single_get_command(void* data,int *type,int *size) {
-  SingleData* commands = (SingleData*) data;
-  if (commands->last_buf) {
-    free(commands->last_buf);
-    commands->last_buf = NULL;
-  }
-  if (!commands->first) {
-    return NULL; 
-  } else {
-    SingleCommand* ret = commands->first;
-    commands->first = ret->next;
-    if (commands->last == ret) {
-      commands->last = NULL;
-    }
-    *type = ret->type;
-    *size = ret->size;
-    commands->last_buf = ret->buf;
-    return ret->buf;
-  }
-}
-
-NetworkType* single_player() {
-  NetworkType* single = malloc(sizeof(NetworkType));
-  single->tick = single_noop;
-  single->logic_tick = single_noop;
-  single->add_command = single_add_command;
-  single->get_command = single_get_command;
-
-  SingleData* data = (SingleData*)malloc(sizeof(SingleData));
-  single->data = (void*)data;
-  data->last = NULL;
-  data->first = NULL;
-  data->last_buf = NULL;
-  return single;
-}
 
 void command_set_tile(Engine* engine,int tileX,int tileY,int type) {
   engine->map->tiles[tileY * engine->map->width + tileX] = type;
@@ -241,7 +169,7 @@ void client_loop()
 
     Engine *engine = engine_init();
     Camera *camera = camera_init();
-    NetworkType* network = single_player();
+    NetworkType* network = single_player_network();
 
     while (1) {
 	network->tick(network->data);

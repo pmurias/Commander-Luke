@@ -14,7 +14,8 @@ SOURCES= \
 	hashmap.c \
 	str.c \
 	socket.c \
-	camera.c
+	camera.c \
+	single_player.c
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o
