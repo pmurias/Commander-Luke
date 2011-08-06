@@ -154,6 +154,82 @@ void load_assets()
     g_tileset[2] = texture_from_file("./data/tiles/walln.png");
 }
 
+typedef struct {
+    void* data;
+    void (*add_command)(void* data,int size,void *command);
+    void* (*get_command)(void* data,int *size);
+    void (*logic_tick)(void* data);
+    void (*tick)(void* data);
+} NetworkType;
+
+typedef struct SingleCommand {
+    struct SingleCommand* next;
+    void* buf;
+    int size;
+} SingleCommand;
+typedef struct {
+  SingleCommand* last;
+  SingleCommand* first;
+  void* last_buf;
+} SingleData;
+
+void single_noop(void* data) {
+}
+void single_add_command(void* data,int size,void *buf) {
+  SingleData* commands = (SingleData*) data;
+
+  SingleCommand* c = (SingleCommand*) malloc(sizeof(SingleCommand)); 
+  c->buf = malloc(size);
+  memcpy(c->buf,buf,size);
+  c->size = size;
+  c->next = NULL;
+  
+  if (!commands->first) {
+    commands->first = c;
+    commands->last = c;
+  } else {
+    commands->last->next = c;
+  }
+}
+
+void* single_get_command(void* data,int *size) {
+  SingleData* commands = (SingleData*) data;
+  if (commands->last_buf) {
+    free(commands->last_buf);
+    commands->last_buf = NULL;
+  }
+  if (!commands->first) {
+    return NULL; 
+  } else {
+    SingleCommand* ret = commands->first;
+    commands->first = ret->next;
+    if (commands->last == ret) {
+      commands->last = NULL;
+    }
+    *size = ret->size;
+    commands->last_buf = ret->buf;
+    return ret->buf;
+  }
+}
+
+NetworkType* single_player() {
+  NetworkType* single = malloc(sizeof(NetworkType));
+  single->tick = single_noop;
+  single->logic_tick = single_noop;
+  single->add_command = single_add_command;
+  single->get_command = single_get_command;
+
+  SingleData* data = (SingleData*)malloc(sizeof(SingleData));
+  single->data = (void*)data;
+  data->last = NULL;
+  data->first = NULL;
+  data->last_buf = NULL;
+  return single;
+}
+
+void command_set_tile(Engine* engine,int tileX,int tileY,int type) {
+  engine->map->tiles[tileY * engine->map->width + tileX] = type;
+}
 void client_loop()
 {
 
@@ -162,7 +238,10 @@ void client_loop()
 
     Engine *engine = engine_init();
     Camera *camera = camera_init();
+    NetworkType* network = single_player();
+
     while (1) {
+	network->tick(network->data);
 
 	int mouseX, mouseY;
 	glfwGetMousePos(&mouseX, &mouseY);
@@ -177,8 +256,30 @@ void client_loop()
 				camera->y - g_screenHeight / 2 + mouseY,
 				&tileX, &tileY);
 	    if (tileX >= 0 && tileY >= 0) {
-		engine->map->
-		    tiles[(int) (tileY * engine->map->width + tileX)] = 1;
+		int command[4];
+		command[0] = 1;
+		command[1] = tileX;
+		command[2] = tileY;
+		command[3] = 1;
+		network->add_command(network->data,sizeof(int)*4,(void*)command);
+	    }
+	}
+
+	network->logic_tick(network->data);
+	int size;
+	void* command;
+	while ((command = network->get_command(network->data,&size))) {
+	    switch (*((int*)command)) {
+		case 1: {
+		    int* as_ints = (int*)command;
+		    int tileX = *(as_ints+1);
+		    int tileY = *(as_ints+2);
+		    int type = *(as_ints+3);
+		    command_set_tile(engine,tileX,tileY,type);
+		    break;
+		}
+		default:
+		    printf("Unknown command\n");
 	    }
 	}
 
