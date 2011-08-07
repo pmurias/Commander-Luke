@@ -20,10 +20,10 @@ typedef void (*TcpServerDisconnectHandler)(TcpServer *, int, int);
 typedef void (*TcpClientReadHandler)(TcpClient *, char *, int);
 typedef void (*TcpClientDisconnectHandler)(TcpClient *);
 
-void socket_startup();
-void socket_cleanup();
+void socket_startup(void);
+void socket_cleanup(void);
 
-TcpServer *new_tcpserver();
+TcpServer *new_tcpserver(void);
 void tcpserver_init(TcpServer *server, int port);
 void tcpserver_listen(TcpServer *server);
 void tcpserver_select(TcpServer *server);
@@ -32,7 +32,7 @@ void tcpserver_set_handlers(TcpServer *server,
 	TcpServerReadHandler readHandler, TcpServerAcceptHandler acceptHandler, TcpServerDisconnectHandler disconnectHandler);
 void tcpserver_close_connection(TcpServer *server, int connection);
 
-TcpClient *new_tcpclient();
+TcpClient *new_tcpclient(void);
 void tcpclient_init(TcpClient *client, int servPort, char *servIp);
 int tcpclient_connect(TcpClient *client);
 void tcpclient_select(TcpClient *client);
