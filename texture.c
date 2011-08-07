@@ -48,7 +48,7 @@ int image_load_from_file(Image *img, char *name)
 }
 
 //-----------------------------------------------------------------------------
-int image_free(Image *img)
+void image_free(Image *img)
 {
 	free(img->pixels);	
 }
@@ -69,6 +69,7 @@ int texture_from_image(Texture *tex, Image *img)
 	return 1;
 }
 
+//-----------------------------------------------------------------------------
 Texture *texture_from_file(char *fname)
 {
 	Image img;
@@ -78,4 +79,15 @@ Texture *texture_from_file(char *fname)
 	texture_from_image(tex, &img);
 	image_free(&img);
 	return tex;
+}
+
+//-----------------------------------------------------------------------------
+void texture_bind(Texture *tex)
+{
+	static Texture *curr_tex = NULL;
+	
+	if (curr_tex != tex) {
+		glBindTexture(GL_TEXTURE_2D, tex->handle);
+		curr_tex = tex;
+	}
 }

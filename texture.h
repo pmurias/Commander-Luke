@@ -17,10 +17,11 @@ typedef struct
 } Texture;
 
 int image_load_from_file(Image *img, char *name);
-int image_free(Image *img);
+void image_free(Image *img);
 
 int texture_from_image(Texture *tex, Image *img);
 Texture* texture_from_file(char* name);
+void texture_bind(Texture *tex);
 
 
 #endif

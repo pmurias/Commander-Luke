@@ -15,7 +15,10 @@ SOURCES= \
 	str.c \
 	socket.c \
 	camera.c \
-	single_player.c
+	single_player.c \
+	blit.c \
+	anim.c \
+	iso.c
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o
