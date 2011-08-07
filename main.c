@@ -10,6 +10,7 @@
 #include "camera.h"
 #include "network.h"
 #include "single_player.h"
+#include "commands.h"
 
 int g_screenWidth = 800;
 int g_screenHeight = 600;
@@ -158,8 +159,8 @@ void load_assets()
 
 
 
-void command_set_tile(Engine* engine,int tileX,int tileY,int type) {
-  engine->map->tiles[tileY * engine->map->width + tileX] = type;
+void command_set_tile(Engine* engine,SetTileCommand* c) {
+  engine->map->tiles[c->tileY * engine->map->width + c->tileX] = c->type;
 }
 void client_loop(NetworkType* network)
 {
@@ -186,11 +187,11 @@ void client_loop(NetworkType* network)
 				camera->y - g_screenHeight / 2 + mouseY,
 				&tileX, &tileY);
 	    if (tileX >= 0 && tileY >= 0) {
-		int command[3];
-		command[0] = tileX;
-		command[1] = tileY;
-		command[2] = 1;
-		network->add_command(network->data,1,sizeof(int)*3,(void*)command);
+		SetTileCommand command;
+		command.tileX = tileX;
+		command.tileY = tileY;
+		command.type = 1;
+		network->add_command(network->data,1,sizeof(SetTileCommand),(void*)&command);
 	    }
 	}
 
@@ -201,11 +202,7 @@ void client_loop(NetworkType* network)
 	while ((command = network->get_command(network->data,&type,&size))) {
 	    switch (type) {
 		case 1: {
-		    int* as_ints = (int*)command;
-		    int tileX = *as_ints;
-		    int tileY = *(as_ints+1);
-		    int type = *(as_ints+2);
-		    command_set_tile(engine,tileX,tileY,type);
+		    command_set_tile(engine,(SetTileCommand*) command);
 		    break;
 		}
 		default:
