@@ -18,7 +18,8 @@ SOURCES= \
 	single_player.c \
 	blit.c \
 	anim.c \
-	iso.c
+	iso.c \
+	tcp_network.c
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o

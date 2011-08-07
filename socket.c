@@ -207,6 +207,12 @@ void tcpclient_init(TcpClient *client, int servPort, char *servIp)
 	client->read_handler = NULL;
 	client->disconnect_handler = NULL;
 	client->is_connected = 0;
+
+#ifndef WIN32
+        int optval = 1;
+        setsockopt(client->socket->handle,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof optval);
+#endif
+
 }
 
 //-----------------------------------------------------------------------------

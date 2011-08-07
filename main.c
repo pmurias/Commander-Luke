@@ -11,6 +11,7 @@
 #include "network.h"
 #include "single_player.h"
 #include "commands.h"
+#include "tcp_network.h"
 
 int g_screenWidth = 800;
 int g_screenHeight = 600;
@@ -120,7 +121,7 @@ typedef struct {
 
 void usage()
 {
-	printf("Usage: luke [--server] [--client ip]");
+	printf("Usage: luke [--server] [--client ip]\n");
 }
 
 Engine *engine_init()
@@ -209,19 +210,92 @@ void client_loop(NetworkType * network)
 	opengl_stop();
 }
 
+#define MAX_CLIENTS 20
+
+typedef struct {
+	Str *msg;
+	int msg_missing_part;
+	int msg_size;
+} Client;
+
+Client clients[MAX_CLIENTS];
+
+int server_accept(TcpServer * server, int conn)
+{
+	clients[conn].msg_missing_part = 0;
+	clients[conn].msg = new_str();
+	printf("Client %d connected...\n", conn);
+	return 1;
+}
+
+void server_disconnect(TcpServer * server, int conn, int gracefully)
+{
+	printf("Client %d left gracefully:%d...\n", conn, gracefully);
+}
+
+void server_parse_msg(int conn)
+{
+
+}
+
+void server_read(TcpServer * server, int conn, char *buf, int len)
+{
+	while (len) {
+		if (clients[conn].msg_missing_part == 0) {
+			int *buf_ints = (int *)buf;
+			str_nset(clients[conn].msg, "", 0);
+			clients[conn].msg_size = clients[conn].msg_missing_part = *buf_ints;
+			buf = (char *)(buf_ints + 1);
+			len -= sizeof(int);
+		}
+
+		int to_copy = len;
+		if (len >= clients[conn].msg_missing_part) {
+			to_copy = clients[conn].msg_missing_part;
+		}
+
+		str_nappend(clients[conn].msg, buf, to_copy);
+		len -= to_copy;
+		buf += to_copy;
+		clients[conn].msg_missing_part -= to_copy;
+		if (!clients[conn].msg_missing_part) {
+			server_parse_msg(conn);
+		}
+	}
+}
+
+void server_loop()
+{
+	Engine *engine = engine_init();
+
+	TcpServer *server = new_tcpserver();
+
+	tcpserver_init(server, 1234);
+	tcpserver_set_handlers(server, &server_read, &server_accept, &server_disconnect);
+	tcpserver_listen(server);
+
+	printf("Server listens...\n");
+
+	while (1) {
+		tcpserver_select(server);
+	}
+}
+
 int main(int argc, char **argv)
 {
 
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
-			printf("NYI\n");
+			server_loop();
 		} else if (strcmp(argv[1], "--client") == 0 && argc == 3) {
-			printf("NYI\n");
+			client_loop(tcp_network(argv[2], "1234"));
 		} else {
 			usage();
 		}
-	} else {
+	} else if (argc == 1) {
 		client_loop(single_player_network());
+	} else {
+		usage();
 	}
 
 	return 0;
