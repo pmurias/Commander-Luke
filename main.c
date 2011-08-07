@@ -235,16 +235,20 @@ void server_disconnect(TcpServer * server, int conn, int gracefully)
 
 void server_parse_msg(int conn)
 {
-
+  printf("parsing msg %d\n",conn);
+  printf("length:%d\n",clients[conn].msg->len);
 }
 
 void server_read(TcpServer * server, int conn, char *buf, int len)
 {
 	while (len) {
 		if (clients[conn].msg_missing_part == 0) {
-			int *buf_ints = (int *)buf;
+			uint32_t *buf_ints = (uint32_t *)buf;
 			str_nset(clients[conn].msg, "", 0);
-			clients[conn].msg_size = clients[conn].msg_missing_part = *buf_ints;
+			clients[conn].msg_size = *buf_ints;
+                        clients[conn].msg_missing_part = *buf_ints;
+                        printf("first in buf_ints: %d\n",*buf_ints);
+                        printf("buf size:%d msg size:%d\n",len,clients[conn].msg_size);
 			buf = (char *)(buf_ints + 1);
 			len -= sizeof(int);
 		}
