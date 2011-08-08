@@ -174,6 +174,13 @@ static void socket_non_block(Socket *socket)
 }
 
 //-----------------------------------------------------------------------------
+static void socket_no_delay(Socket *socket)
+{
+	int optval = 1;
+	setsockopt(socket->handle, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(int));
+}
+
+//-----------------------------------------------------------------------------
 static void sockaddr_from_ip(SockAddr *addr, char *ip, int port)
 {
 	ZeroMemory(&addr->addr, sizeof(addr->addr));
@@ -229,6 +236,7 @@ int tcpclient_connect(TcpClient *client)
 		return 0;
 	}
 	socket_non_block(client->socket);
+	socket_no_delay(client->socket);
 	client->is_connected = 1;
 	return 1;
 }
@@ -439,7 +447,8 @@ void tcpserver_select(TcpServer *server)
 			if (conn != MAX_CLIENTS && server->accept_handler(server, conn)) 
 			{
 				server->clients[conn] = client;
-				socket_non_block(client);								
+				socket_non_block(client);	
+				socket_no_delay(client);
 			}
 			/* else refuse connection */
 		}
@@ -512,6 +521,7 @@ void tcpserver_listen(TcpServer *server)
 		exit(1);
 	}
 	socket_non_block(server->socket);
+	socket_no_delay(server->socket);
 }
 
 //-----------------------------------------------------------------------------
