@@ -30,7 +30,7 @@
 #define ZeroMemory(a, c) (memset((a), 0, (c)))
 #endif
 
-#define SOCK_BUFFER_LEN 8196
+#define SOCK_BUFFER_LEN 1280
 #define MAX_CLIENTS 64
 
 struct _SockAddr
@@ -82,6 +82,7 @@ struct _TcpClient
 	TcpClientReadHandler read_handler;
 	TcpClientDisconnectHandler disconnect_handler;
 	int is_connected;
+	void *user_data;
 };
 
 //-----------------------------------------------------------------------------
@@ -333,6 +334,18 @@ void tcpclient_close(TcpClient *client)
 int tcpclient_is_connected(TcpClient *client)
 {
 	return client->is_connected;
+}
+
+//-----------------------------------------------------------------------------
+void tcpclient_set_user_data(TcpClient *client, void *userdata)
+{
+	client->user_data = userdata;
+}
+
+//-----------------------------------------------------------------------------
+void *tcpclient_get_user_data(TcpClient *client)
+{
+	return client->user_data;
 }
 
 //-----------------------------------------------------------------------------

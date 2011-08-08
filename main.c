@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 
 #include "texture.h"
@@ -145,14 +146,13 @@ void load_assets()
 	g_tileset[2] = texture_from_file("./data/tiles/walln.png");
 }
 
-void command_set_tile(Engine * engine, SetTileCommand * c)
-{
-	engine->map->tiles[c->tileY * engine->map->width + c->tileX] = c->type;
+void command_set_tile(Engine * engine, Netcmd_SetTile * c)
+{	
+	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
 
 void client_loop(NetworkType * network)
 {
-
 	opengl_start();
 	load_assets();
 
@@ -160,7 +160,7 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 
 	while (1) {
-		network->tick(network->data);
+		network->tick(network->state);
 
 		int mouseX, mouseY;
 		glfwGetMousePos(&mouseX, &mouseY);
@@ -172,27 +172,28 @@ void client_loop(NetworkType * network)
 			float tileX, tileY;
 			snap_screen_to_tile(camera->x - g_screenWidth / 2 + mouseX, camera->y - g_screenHeight / 2 + mouseY, &tileX, &tileY);
 			if (tileX >= 0 && tileY >= 0) {
-				SetTileCommand command;
-				command.tileX = tileX;
-				command.tileY = tileY;
+				Netcmd_SetTile command;
+				command.header.type = NETCMD_SETTILE;
+				command.tile_x = tileX;
+				command.tile_y = tileY;
 				command.type = 1;
-				network->add_command(network->data, 1, sizeof(SetTileCommand), (void *)&command);
+				network->add_command(network->state, (void *)&command);
 			}
 		}
 
-		network->logic_tick(network->data);
-		int size;
-		int type;
-		void *command;
-		while ((command = network->get_command(network->data, &type, &size))) {
-			switch (type) {
-			case 1:{
-					command_set_tile(engine, (SetTileCommand *) command);
+		network->logic_tick(network->state);
+		
+		Netcmd *command;
+		while ((command = network->get_command(network->state))) {
+			switch (command->header.type) {
+			case NETCMD_SETTILE:{
+					command_set_tile(engine, (Netcmd_SetTile *) command);					
 					break;
 				}
 			default:
 				printf("Unknown command\n");
 			}
+			free(command);
 		}
 
 		camera_keyboard_control(camera);
@@ -204,7 +205,7 @@ void client_loop(NetworkType * network)
 		glfwSwapBuffers();
 	}
 
-	network->cleanup(network->data);
+	network->cleanup(network->state);
 	camera_free(camera);
 	engine_free(engine);
 	opengl_stop();
@@ -213,57 +214,58 @@ void client_loop(NetworkType * network)
 #define MAX_CLIENTS 20
 
 typedef struct {
-	Str *msg;
-	int msg_missing_part;
-	int msg_size;
+	char *read_buf;
+	uint32_t num_read_bytes;
+	uint32_t msg_size;
+	int waiting;
+	int needs_greeting;
+	int active;
 } Client;
+
+char bulk_packet[8196];
+uint32_t bulk_packet_size = 4;
 
 Client clients[MAX_CLIENTS];
 
 int server_accept(TcpServer * server, int conn)
 {
-	clients[conn].msg_missing_part = 0;
-	clients[conn].msg = new_str();
+	clients[conn].active = 1;
+	clients[conn].msg_size = 0;
+	clients[conn].waiting = 0;
+	clients[conn].needs_greeting = 1;
 	printf("Client %d connected...\n", conn);
 	return 1;
 }
 
 void server_disconnect(TcpServer * server, int conn, int gracefully)
 {
+	clients[conn].active = 0;
 	printf("Client %d left gracefully:%d...\n", conn, gracefully);
-}
-
-void server_parse_msg(int conn)
-{
-  printf("parsing msg %d\n",conn);
-  printf("length:%d\n",clients[conn].msg->len);
 }
 
 void server_read(TcpServer * server, int conn, char *buf, int len)
 {
-	while (len) {
-		if (clients[conn].msg_missing_part == 0) {
-			uint32_t *buf_ints = (uint32_t *)buf;
-			str_nset(clients[conn].msg, "", 0);
-			clients[conn].msg_size = *buf_ints;
-                        clients[conn].msg_missing_part = *buf_ints;
-                        printf("first in buf_ints: %d\n",*buf_ints);
-                        printf("buf size:%d msg size:%d\n",len,clients[conn].msg_size);
-			buf = (char *)(buf_ints + 1);
-			len -= sizeof(int);
+	int i = 0;
+	while (i != len) {
+		if (clients[conn].msg_size == 0) {
+			clients[conn].msg_size = *(uint32_t*)(buf + i);			
+			clients[conn].read_buf = malloc(clients[conn].msg_size);						
+			clients[conn].num_read_bytes = 0;
+			i += sizeof(uint32_t);
 		}
-
-		int to_copy = len;
-		if (len >= clients[conn].msg_missing_part) {
-			to_copy = clients[conn].msg_missing_part;
-		}
-
-		str_nappend(clients[conn].msg, buf, to_copy);
-		len -= to_copy;
-		buf += to_copy;
-		clients[conn].msg_missing_part -= to_copy;
-		if (!clients[conn].msg_missing_part) {
-			server_parse_msg(conn);
+		
+		int nbytes = clients[conn].msg_size - clients[conn].num_read_bytes;						
+		int rbytes = (len - i) < nbytes ? (len - i) : nbytes;
+		memcpy(clients[conn].read_buf + clients[conn].num_read_bytes, buf + i, rbytes);
+		i += rbytes;
+		clients[conn].num_read_bytes += rbytes;				
+		
+		if (clients[conn].num_read_bytes == clients[conn].msg_size) {
+			memcpy(bulk_packet + bulk_packet_size, clients[conn].read_buf, clients[conn].msg_size );
+			bulk_packet_size +=  clients[conn].msg_size;
+			free(clients[conn].read_buf);
+			clients[conn].waiting = 0;
+			clients[conn].msg_size = 0;
 		}
 	}
 }
@@ -282,12 +284,43 @@ void server_loop()
 
 	while (1) {
 		tcpserver_select(server);
+		for (int i = 0; i < MAX_CLIENTS; i++) {
+			if (clients[i].needs_greeting) {			
+				char client_id = i;				
+				tcpserver_write(server, i, &client_id, 1);
+				clients[i].needs_greeting = 0;
+				clients[i].waiting = 1;
+			}
+		}
+		
+		int none_waits = 1;
+		for (int i = 0; i< MAX_CLIENTS; i++) {
+			none_waits &= !(clients[i].active && clients[i].waiting);
+		}
+				
+		if (none_waits) {
+			memcpy(bulk_packet, &bulk_packet_size, sizeof(uint32_t));			
+			for (int i = 0; i< MAX_CLIENTS; i++) {				
+				if (clients[i].active) {				
+					tcpserver_write(server, i, bulk_packet, bulk_packet_size);
+					clients[i].waiting = 1;
+				}
+			}
+			bulk_packet_size = 4;
+		}
 	}
 }
 
-int main(int argc, char **argv)
+void system_startup()
 {
+	socket_startup();
+	command_startup();
+}
 
+int main(int argc, char **argv)
+{	
+	system_startup();
+	
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
 			server_loop();
@@ -301,6 +334,8 @@ int main(int argc, char **argv)
 	} else {
 		usage();
 	}
+	
+	socket_startup();
 
 	return 0;
 }

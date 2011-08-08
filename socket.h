@@ -23,6 +23,17 @@ typedef void (*TcpClientDisconnectHandler)(TcpClient *);
 void socket_startup(void);
 void socket_cleanup(void);
 
+TcpClient *new_tcpclient(void);
+void tcpclient_init(TcpClient *client, int servPort, char *servIp);
+int tcpclient_connect(TcpClient *client);
+void tcpclient_select(TcpClient *client);
+void tcpclient_write(TcpClient *client, char *buf, int len);
+void tcpclient_set_handlers(TcpClient *client, TcpClientReadHandler readHandler, TcpClientDisconnectHandler disconnectHandler);
+void tcpclient_close(TcpClient *client);
+int tcpclient_is_connected(TcpClient *client);
+void tcpclient_set_user_data(TcpClient *client, void *userdata);
+void *tcpclient_get_user_data(TcpClient *client);
+
 TcpServer *new_tcpserver(void);
 void tcpserver_init(TcpServer *server, int port);
 void tcpserver_listen(TcpServer *server);
@@ -32,13 +43,5 @@ void tcpserver_set_handlers(TcpServer *server,
 	TcpServerReadHandler readHandler, TcpServerAcceptHandler acceptHandler, TcpServerDisconnectHandler disconnectHandler);
 void tcpserver_close_connection(TcpServer *server, int connection);
 
-TcpClient *new_tcpclient(void);
-void tcpclient_init(TcpClient *client, int servPort, char *servIp);
-int tcpclient_connect(TcpClient *client);
-void tcpclient_select(TcpClient *client);
-void tcpclient_write(TcpClient *client, char *buf, int len);
-void tcpclient_set_handlers(TcpClient *client, TcpClientReadHandler readHandler, TcpClientDisconnectHandler disconnectHandler);
-void tcpclient_close(TcpClient *client);
-int tcpclient_is_connected(TcpClient *client);
 
 #endif // __SOCKET_H__

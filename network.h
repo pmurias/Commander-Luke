@@ -1,12 +1,16 @@
 #ifndef __NETWORK_H__
 #define __NETWORK_H__
+
+#include "commands.h"
+
 typedef struct {
-    void* data;
-    void (*add_command)(void* data,int type,int size,void *command);
+    void* state;
+    void (*add_command)(void* state, Netcmd *command);
     /* the buffer returned by get_command is only guaranteed to be avalible till the next call to get_command*/
-    void* (*get_command)(void* data,int *type,int *size);
-    void (*logic_tick)(void* data);
-    void (*tick)(void* data);
-    void (*cleanup)(void* data);
+    Netcmd* (*get_command)(void* state);
+    void (*logic_tick)(void* state);
+    void (*tick)(void* state);
+    void (*cleanup)(void* state);
 } NetworkType;
+
 #endif

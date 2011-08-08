@@ -15,10 +15,11 @@ SOURCES= \
 	str.c \
 	socket.c \
 	camera.c \
-	single_player.c \
 	blit.c \
 	anim.c \
 	iso.c \
+	commands.c \
+	single_player.c \
 	tcp_network.c
 OBJECTS=$(SOURCES:.c=.o)
 
