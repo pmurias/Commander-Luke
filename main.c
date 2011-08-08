@@ -181,7 +181,6 @@ void client_loop(NetworkType * network)
 			}
 		}
 
-		network->logic_tick(network->state);
 		
 		Netcmd *command;
 		while ((command = network->get_command(network->state))) {
@@ -195,6 +194,8 @@ void client_loop(NetworkType * network)
 			}
 			free(command);
 		}
+
+		network->logic_tick(network->state);
 
 		camera_keyboard_control(camera);
 
