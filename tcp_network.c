@@ -22,6 +22,7 @@ typedef struct  {
 	CmdNodeQueue out;
 	float last_post_time;
 	float post_delay;	
+        float wait_start;
 	
 	CmdNodeQueue in;	
 	char *read_buf;
@@ -69,6 +70,7 @@ static void logic_tick(void *d)
 		
 	tcpclient_write(state->client, packet, packet_size);
 	state->waiting = 1;	
+        state->wait_start = glfwGetTime();
 }
 
 static void append_command(CmdNodeQueue *q, CmdNode *c)
@@ -137,6 +139,8 @@ void client_read(TcpClient * client, char *buf, int len)
 			}
 								
 			state->waiting = 0;
+
+                        printf("Waited %f %d\n",glfwGetTime()-state->wait_start,state->msg_size);
 			free(state->read_buf);
 			state->msg_size = 0;
 			if (i != len) {
@@ -205,7 +209,7 @@ NetworkType *tcp_network(char *ip)
 	state->out.last = NULL;
 	state->out.first = NULL;
 	state->last_post_time = 0;	
-	state->post_delay = 0.2;
+	state->post_delay = 0.05;
 	state->waiting = 0;
 	state->client_id = -1;
 
