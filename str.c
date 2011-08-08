@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 //-----------------------------------------------------------------------------
-Str *new_str()
+Str *new_str(void)
 {
 	Str *str = malloc(sizeof(Str));
 	str_init(str);

@@ -1,7 +1,7 @@
 #include <GL/glfw.h>
 #include "camera.h"
 #include <stdlib.h>
-Camera *camera_init()
+Camera *camera_init(void)
 {
     Camera *camera = malloc(sizeof(Camera));
     camera->x = 0;

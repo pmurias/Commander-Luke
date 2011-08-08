@@ -1,7 +1,28 @@
 #ifndef __NETWORK_H__
 #define __NETWORK_H__
 
-#include "commands.h"
+#include <stdint.h>
+
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+	uint8_t type;	
+} NetcmdHeader;
+
+typedef struct {
+	NetcmdHeader header;
+	char data[1];
+} Netcmd;
+
+#pragma pack(pop)
+
+int netcmd_sizes[255];
+
+inline int command_size(Netcmd *cmd)
+{
+	return netcmd_sizes[cmd->header.type];
+}
 
 typedef struct {
     void* state;

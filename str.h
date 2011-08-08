@@ -10,7 +10,7 @@ typedef struct
 	uint16_t len;
 } Str;
 
-Str *new_str();
+Str *new_str(void);
 void str_init(Str *str);
 void str_free(Str *str);
 uint32_t str_hash(const char *val, uint16_t len);

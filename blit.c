@@ -16,7 +16,7 @@ typedef struct
 static _InternalState is;
 
 //-----------------------------------------------------------------------------
-void blit_startup()
+void blit_startup(void)
 {
 	is.sprites = malloc(sizeof(HashMap));
 	hashmap_init(is.sprites, sizeof(Sprite), 64);

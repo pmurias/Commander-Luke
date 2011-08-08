@@ -10,9 +10,10 @@
 #include "str.h"
 #include "camera.h"
 #include "network.h"
-#include "single_player.h"
 #include "commands.h"
+#include "single_player.h"
 #include "tcp_network.h"
+#include "blit.h"
 
 int g_screenWidth = 800;
 int g_screenHeight = 600;
@@ -272,9 +273,7 @@ void server_read(TcpServer * server, int conn, char *buf, int len)
 }
 
 void server_loop()
-{
-	Engine *engine = engine_init();
-
+{	
 	TcpServer *server = new_tcpserver();
 
 	tcpserver_init(server, 1234);
@@ -315,7 +314,8 @@ void server_loop()
 void system_startup()
 {
 	socket_startup();
-	command_startup();
+	commands_startup();
+	blit_startup();
 }
 
 int main(int argc, char **argv)

@@ -30,7 +30,7 @@
 #define ZeroMemory(a, c) (memset((a), 0, (c)))
 #endif
 
-#define SOCK_BUFFER_LEN 1280
+#define SOCK_BUFFER_LEN 4096
 #define MAX_CLIENTS 64
 
 struct _SockAddr
@@ -129,7 +129,7 @@ static void socketbuffer_free(SocketBuffer *buffer)
 }
 
 //-----------------------------------------------------------------------------
-void socket_startup()
+void socket_startup(void)
 {
 	#ifdef WIN32
 	WSADATA wsaData;
@@ -138,7 +138,7 @@ void socket_startup()
 }
 
 //-----------------------------------------------------------------------------
-void socket_cleanup()
+void socket_cleanup(void)
 {
 	#ifdef WIN32
 	WSACleanup();
@@ -146,7 +146,7 @@ void socket_cleanup()
 }
 
 //-----------------------------------------------------------------------------
-static Socket *new_tcpsocket()
+static Socket *new_tcpsocket(void)
 {
 	Socket *sock = malloc(sizeof(Socket));
 	ZeroMemory(sock, sizeof(Socket));
@@ -198,7 +198,7 @@ int sockaddr_cmp(SockAddr *a, SockAddr *b) {
 }
 
 //-----------------------------------------------------------------------------
-TcpClient *new_tcpclient()
+TcpClient *new_tcpclient(void)
 {
 	TcpClient *client = malloc(sizeof(TcpClient));
 	return client;
@@ -357,7 +357,7 @@ void *tcpclient_get_user_data(TcpClient *client)
 }
 
 //-----------------------------------------------------------------------------
-TcpServer *new_tcpserver()
+TcpServer *new_tcpserver(void)
 {
 	TcpServer *server = malloc(sizeof(TcpServer));
 	return server;
@@ -644,7 +644,7 @@ void udpsocket_listen(UdpSocket *sock)
 }
 
 //-----------------------------------------------------------------------------
-SockAddr *new_sockaddr()
+SockAddr *new_sockaddr(void)
 {
 	SockAddr *naddr;
 	naddr = malloc(sizeof(SockAddr));

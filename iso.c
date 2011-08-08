@@ -7,7 +7,7 @@
 static float dir_table[ISODIRECTIONS][2];
 
 //-----------------------------------------------------------------------------
-void iso_startup()
+void iso_startup(void)
 {		
 	float angleDist = M_PI*2.0 / ISODIRECTIONS;
 	for (int i = 0; i < ISODIRECTIONS; i++) {
@@ -42,7 +42,7 @@ int iso_get_dir(float x, float y)
 }
 
 //-----------------------------------------------------------------------------
-IsoAnim *new_isoanim()
+IsoAnim *new_isoanim(void)
 {
 	IsoAnim *anim = malloc(sizeof(IsoAnim));	
 	memset(anim->anims, 0, sizeof(AnimData*)*ISODIRECTIONS);

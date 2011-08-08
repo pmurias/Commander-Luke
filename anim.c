@@ -6,7 +6,7 @@
 #include "anim.h"
 
 //-----------------------------------------------------------------------------
-AnimData *new_anim()
+AnimData *new_anim(void)
 {
 	AnimData *anim = malloc(sizeof(AnimData));
 	anim->frames = malloc(sizeof(Sprite*));

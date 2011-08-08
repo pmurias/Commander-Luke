@@ -6,7 +6,6 @@
 
 #include "network.h"
 #include "socket.h"
-#include "commands.h"
 
 typedef struct CmdNode {
 	struct CmdNode *next;		
@@ -34,12 +33,14 @@ typedef struct  {
 	char client_id;
 } TcpNetworkState;
 
+//-----------------------------------------------------------------------------
 static void tick(void *d)
 {
 	TcpNetworkState *state = (TcpNetworkState *) d;
 	tcpclient_select(state->client);
 }
 
+//-----------------------------------------------------------------------------
 static void logic_tick(void *d)
 {
 	TcpNetworkState *state = (TcpNetworkState *) d;
@@ -73,6 +74,7 @@ static void logic_tick(void *d)
         state->wait_start = glfwGetTime();
 }
 
+//-----------------------------------------------------------------------------
 static void append_command(CmdNodeQueue *q, CmdNode *c)
 {
 	if (!q->first) {
@@ -84,6 +86,7 @@ static void append_command(CmdNodeQueue *q, CmdNode *c)
 	}
 }
 
+//-----------------------------------------------------------------------------
 static void add_command(void *d, Netcmd *cmd)
 {	
 	TcpNetworkState *state = (TcpNetworkState *) d;
@@ -96,8 +99,8 @@ static void add_command(void *d, Netcmd *cmd)
 	append_command(&state->out, c);
 }
 
-
-void client_read(TcpClient * client, char *buf, int len)
+//-----------------------------------------------------------------------------
+static void client_read(TcpClient * client, char *buf, int len)
 {
 	TcpNetworkState *state = tcpclient_get_user_data(client);	
 	
@@ -148,16 +151,16 @@ void client_read(TcpClient * client, char *buf, int len)
 				exit(1);
 			}
 		}
-	}
-		
-	
+	}		
 }
 
-void client_disconnect(TcpClient * client)
+//-----------------------------------------------------------------------------
+static void client_disconnect(TcpClient * client)
 {
 	printf("Disconnect\n");
 }
 
+//-----------------------------------------------------------------------------
 static Netcmd *get_command(void *d)
 {
 	TcpNetworkState *state = d;
@@ -175,6 +178,7 @@ static Netcmd *get_command(void *d)
 	return NULL;
 }
 
+//-----------------------------------------------------------------------------
 static void cleanup(void *d)
 {
 	TcpNetworkState *state = (TcpNetworkState *) d;
@@ -191,6 +195,7 @@ static void cleanup(void *d)
 	}
 }
 
+//-----------------------------------------------------------------------------
 NetworkType *tcp_network(char *ip)
 {
 	NetworkType *tcp = malloc(sizeof(NetworkType));

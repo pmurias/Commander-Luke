@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "network.h"
-#include "commands.h"
 
 typedef struct Command {
 	struct Command *next;	

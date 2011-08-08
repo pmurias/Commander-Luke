@@ -14,7 +14,7 @@ typedef struct
 	Texture *texture;
 } Sprite;
 
-void blit_startup();
+void blit_startup(void);
 int blit_load_spritesheet(char *texname, char *mapname);
 Sprite *blit_get_sprite(char *name);
 void blit_sprite(Sprite *spr, int x, int y);

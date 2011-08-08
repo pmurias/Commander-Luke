@@ -14,6 +14,14 @@ uint32_t hashmap_h2(uint32_t k)
 }
 
 //-----------------------------------------------------------------------------
+HashMap *new_hashmap(uint16_t elem_size)
+{
+	HashMap *hm = malloc(sizeof(HashMap));
+	hashmap_init(hm, elem_size, HASHMAP_MIN_SIZE);
+	return hm;
+}
+
+//-----------------------------------------------------------------------------
 void hashmap_init(HashMap *hm, uint16_t elem_size, uint32_t size)
 {
 	uint32_t i;
