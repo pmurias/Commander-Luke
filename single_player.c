@@ -11,7 +11,6 @@ typedef struct Command {
 typedef struct {
 	Command *last;
 	Command *first;
-	void *last_buf;
 } Data;
 
 static void noop(void *data)
@@ -38,10 +37,6 @@ static void add_command(void *data, Netcmd *cmd)
 static Netcmd *get_command(void *data)
 {
 	Data *commands = (Data *) data;
-	if (commands->last_buf) {
-		free(commands->last_buf);
-		commands->last_buf = NULL;
-	}
 	if (!commands->first) {
 		return NULL;
 	} else {
@@ -50,7 +45,6 @@ static Netcmd *get_command(void *data)
 		if (commands->last == ret) {
 			commands->last = NULL;
 		}		
-		commands->last_buf = ret->cmd;
 		return ret->cmd;
 	}
 }
@@ -58,8 +52,6 @@ static Netcmd *get_command(void *data)
 static void cleanup(void *data)
 {
 	Data *commands = (Data *) data;
-	if (commands->last_buf)
-		free(commands->last_buf);
 
 	Command *c = commands->first;
 	while (c) {
@@ -82,6 +74,5 @@ NetworkType *single_player_network(void)
 	single->state = (void *)data;
 	data->last = NULL;
 	data->first = NULL;
-	data->last_buf = NULL;
 	return single;
 }
