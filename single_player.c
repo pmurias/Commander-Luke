@@ -2,16 +2,7 @@
 #include <string.h>
 
 #include "network.h"
-
-typedef struct Command {
-	struct Command *next;	
-	Netcmd *cmd;
-} Command;
-
-typedef struct {
-	Command *last;
-	Command *first;
-} Data;
+#include "queue.h"
 
 static void noop(void *data)
 {
@@ -19,46 +10,19 @@ static void noop(void *data)
 
 static void add_command(void *data, Netcmd *cmd)
 {
-	Data *commands = (Data *) data;
-
-	Command *c = (Command *) malloc(sizeof(Command));	
-	c->cmd = malloc(command_size(cmd));
-	memcpy(c->cmd, cmd, command_size(cmd));
-	c->next = NULL;
-
-	if (!commands->first) {
-		commands->first = c;
-		commands->last = c;
-	} else {
-		commands->last->next = c;
-	}
+	Netcmd *cmdcopy = malloc(command_size(cmd));
+	memcpy(cmdcopy, cmd, command_size(cmd));
+	queue_push((Queue*)data, cmdcopy);	
 }
 
 static Netcmd *get_command(void *data)
 {
-	Data *commands = (Data *) data;
-	if (!commands->first) {
-		return NULL;
-	} else {
-		Command *ret = commands->first;
-		commands->first = ret->next;
-		if (commands->last == ret) {
-			commands->last = NULL;
-		}		
-		return ret->cmd;
-	}
+	return queue_pop(data);	
 }
 
 static void cleanup(void *data)
 {
-	Data *commands = (Data *) data;
-
-	Command *c = commands->first;
-	while (c) {
-		free(c->cmd);
-		c = c->next;
-	}
-
+	queue_clear((Queue*)data);
 }
 
 NetworkType *single_player_network(void)
@@ -70,9 +34,7 @@ NetworkType *single_player_network(void)
 	single->get_command = get_command;
 	single->cleanup = cleanup;
 
-	Data *data = (Data *) malloc(sizeof(Data));
-	single->state = (void *)data;
-	data->last = NULL;
-	data->first = NULL;
+	Queue *state = new_queue(0);
+	single->state = (void *)state;	
 	return single;
 }

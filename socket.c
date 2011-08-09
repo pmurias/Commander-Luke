@@ -49,14 +49,15 @@ typedef struct _SocketBufferChunk
 
 typedef struct
 {
-	SocketBufferChunk *first_chunk;
 	SocketBufferChunk *last_chunk;
+	SocketBufferChunk *first_chunk;
 } SocketBuffer;
 
 typedef struct _Socket
 {
 	SOCKET handle;
 	SockAddr addr;
+	void *user_data;
 } Socket;
 
 struct _TcpServer
@@ -69,7 +70,7 @@ struct _TcpServer
 	fd_set exc_set;
 	TcpServerReadHandler read_handler;
 	TcpServerAcceptHandler accept_handler;
-	TcpServerDisconnectHandler disconnect_handler;
+	TcpServerDisconnectHandler disconnect_handler;	
 };
 
 struct _TcpClient
@@ -81,8 +82,7 @@ struct _TcpClient
 	fd_set exc_set;
 	TcpClientReadHandler read_handler;
 	TcpClientDisconnectHandler disconnect_handler;
-	int is_connected;
-	void *user_data;
+	int is_connected;	
 };
 
 //-----------------------------------------------------------------------------
@@ -105,11 +105,11 @@ static void socketbuffer_load_data(SocketBuffer *buffer, char *data, int len)
 	{
 		sendLen = len < SOCK_BUFFER_LEN ? len : SOCK_BUFFER_LEN;
 		newChunk = new_socketbufferchunk(data, sendLen);
-		if (buffer->last_chunk == NULL) {
-			buffer->first_chunk = buffer->last_chunk = newChunk;
+		if (buffer->first_chunk == NULL) {
+			buffer->last_chunk = buffer->first_chunk = newChunk;
 		} else {
-			buffer->first_chunk->next = newChunk;
-			buffer->first_chunk = newChunk;
+			buffer->last_chunk->next = newChunk;
+			buffer->last_chunk = newChunk;
 		}
 		len -= sendLen;
 		data += sendLen;
@@ -119,13 +119,13 @@ static void socketbuffer_load_data(SocketBuffer *buffer, char *data, int len)
 //-----------------------------------------------------------------------------
 static void socketbuffer_free(SocketBuffer *buffer)
 {
-	SocketBufferChunk *next, *chunk = buffer->last_chunk;
+	SocketBufferChunk *next, *chunk = buffer->first_chunk;
 	while (chunk != NULL) {
 		next = chunk->next;
 		free(chunk);
 		chunk = next;
 	}
-	buffer->first_chunk = buffer->last_chunk = NULL;
+	buffer->last_chunk = buffer->first_chunk = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -210,8 +210,8 @@ void tcpclient_init(TcpClient *client, int servPort, char *servIp)
 	client->socket = new_tcpsocket();
 	sockaddr_from_ip(&client->socket->addr, servIp, servPort);
 	
-	client->write_buffer.first_chunk = NULL;
 	client->write_buffer.last_chunk = NULL;
+	client->write_buffer.first_chunk = NULL;
 	client->read_handler = NULL;
 	client->disconnect_handler = NULL;
 	client->is_connected = 0;
@@ -249,7 +249,7 @@ void tcpclient_init_sets(TcpClient *client)
 	FD_ZERO(&client->exc_set);
 	
 	FD_SET(client->socket->handle, &client->read_set);
-	if (client->write_buffer.last_chunk != NULL) {
+	if (client->write_buffer.first_chunk != NULL) {
 		FD_SET(client->socket->handle, &client->write_set);
 	}
 	FD_SET(client->socket->handle, &client->exc_set);
@@ -289,7 +289,7 @@ void tcpclient_select(TcpClient *client)
 		
 		if (FD_ISSET(client->socket->handle, &client->write_set))
 		{
-			SocketBufferChunk *chunk = client->write_buffer.last_chunk;
+			SocketBufferChunk *chunk = client->write_buffer.first_chunk;
 			int num_bytes_writen = send(client->socket->handle,
 			chunk->data, chunk->num_bytes, 0);
 				
@@ -297,7 +297,7 @@ void tcpclient_select(TcpClient *client)
 				printf("Socket error: didn't manage to send whole buffer.\n");
 			}
 				
-			client->write_buffer.last_chunk = chunk->next;
+			client->write_buffer.first_chunk = chunk->next;
 			free(chunk);
 		}
 			
@@ -347,13 +347,13 @@ int tcpclient_is_connected(TcpClient *client)
 //-----------------------------------------------------------------------------
 void tcpclient_set_user_data(TcpClient *client, void *userdata)
 {
-	client->user_data = userdata;
+	client->socket->user_data = userdata;
 }
 
 //-----------------------------------------------------------------------------
 void *tcpclient_get_user_data(TcpClient *client)
 {
-	return client->user_data;
+	return client->socket->user_data;
 }
 
 //-----------------------------------------------------------------------------
@@ -381,7 +381,7 @@ void tcpserver_init(TcpServer *server, int port)
 	ZeroMemory(server->write_buffers, sizeof(SocketBuffer)*MAX_CLIENTS);
 	server->read_handler = NULL;
 	server->accept_handler = NULL;
-	server->disconnect_handler = NULL;
+	server->disconnect_handler = NULL;	
 }
 
 //-----------------------------------------------------------------------------
@@ -398,7 +398,7 @@ void tcpserver_init_sets(TcpServer *server)
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		if (server->clients[i]) 
 		{
-			if (server->write_buffers[i].last_chunk != NULL)
+			if (server->write_buffers[i].first_chunk != NULL)
 				FD_SET(server->clients[i]->handle, &server->write_set);
 			else
 				FD_SET(server->clients[i]->handle, &server->read_set);
@@ -486,7 +486,7 @@ void tcpserver_select(TcpServer *server)
 			
 			if (FD_ISSET(server->clients[i]->handle, &server->write_set))
 			{
-				SocketBufferChunk *chunk = server->write_buffers[i].last_chunk;
+				SocketBufferChunk *chunk = server->write_buffers[i].first_chunk;
 				int num_bytes_writen = send(server->clients[i]->handle,
 					chunk->data, chunk->num_bytes, 0);
 				
@@ -494,7 +494,7 @@ void tcpserver_select(TcpServer *server)
 					printf("Socket: didn't manage to send whole buffer.\n");
 				}								
 				
-				server->write_buffers[i].last_chunk = chunk->next;
+				server->write_buffers[i].first_chunk = chunk->next;
 				free(chunk);
 			}
 			
@@ -545,6 +545,18 @@ void tcpserver_close_connection(TcpServer *server, int connection)
 	shutdown(server->clients[connection]->handle, SD_SEND);
 	closesocket(server->clients[connection]->handle);
 	tcpserver_free_connection(server, connection);
+}
+
+//-----------------------------------------------------------------------------
+void tcpserver_set_user_data(TcpServer *server, void *userdata)
+{
+	server->socket->user_data = userdata;
+}
+
+//-----------------------------------------------------------------------------
+void *tcpserver_get_user_data(TcpServer *server)
+{
+	return server->socket->user_data;
 }
 
 

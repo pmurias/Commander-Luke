@@ -42,6 +42,8 @@ void tcpserver_write(TcpServer *server, int connection, char *buf, int len);
 void tcpserver_set_handlers(TcpServer *server, 
 	TcpServerReadHandler readHandler, TcpServerAcceptHandler acceptHandler, TcpServerDisconnectHandler disconnectHandler);
 void tcpserver_close_connection(TcpServer *server, int connection);
+void tcpserver_set_user_data(TcpServer *server, void *userdata);
+void *tcpserver_get_user_data(TcpServer *server);
 
 
 #endif // __SOCKET_H__
