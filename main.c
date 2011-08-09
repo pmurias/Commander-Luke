@@ -14,6 +14,7 @@
 #include "single_player.h"
 #include "tcp_network.h"
 #include "blit.h"
+#include "font.h"
 
 int g_screenWidth = 800;
 int g_screenHeight = 600;
@@ -91,6 +92,7 @@ void draw_tilemap(TileMap * map, Camera * cam, Texture ** tileset)
 				Texture *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
 				float scrX, scrY;
 				tile_to_screen(tileX - tCamX, tileY - tCamY, &scrX, &scrY);
+				texture_bind(tile);
 				blit(tile, round(offX + scrX + g_screenWidth / 2 - 80), round(offY + scrY + g_screenHeight / 2 - (tile->height - 40)));
 			}
 		}
@@ -159,11 +161,15 @@ void client_loop(NetworkType * network)
 
 	Engine *engine = engine_init();
 	Camera *camera = camera_init();
+	
+	Font *fnt = new_font();
+	font_load(fnt, "./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
 		
 
 	float last_frame_time = glfwGetTime();
 	float time_accum = 0;
 	float time_step = 1.0/24.0;
+	float frame_time;
 	while (1) {
 		network->tick(network->state);
 				
@@ -173,7 +179,8 @@ void client_loop(NetworkType * network)
 		if (glfwGetKey('X'))
 			break;
 
-		time_accum += glfwGetTime() - last_frame_time;
+		frame_time = glfwGetTime() - last_frame_time;
+		time_accum += frame_time;
 		last_frame_time = glfwGetTime();
 		while (time_accum >= time_step) {
 			time_accum -= time_step;
@@ -210,8 +217,9 @@ void client_loop(NetworkType * network)
 		camera_keyboard_control(camera);
 		
 		glClear(GL_COLOR_BUFFER_BIT);
-
+		
 		draw_tilemap(engine->map, camera, g_tileset);
+		font_print(fnt, 10, 10, "Hello World!\nFPS: %d", (int)round(1.0/frame_time));
 
 		glfwSwapBuffers();
 	}
@@ -240,7 +248,7 @@ void system_startup()
 int main(int argc, char **argv)
 {	
 	system_startup();
-	
+		
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
 			server_loop(new_tcp_server_state());

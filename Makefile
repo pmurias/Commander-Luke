@@ -19,6 +19,7 @@ SOURCES= \
 	blit.c \
 	anim.c \
 	iso.c \
+	font.c \
 	commands.c \
 	single_player.c \
 	tcp_client_state.c \

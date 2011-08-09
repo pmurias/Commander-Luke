@@ -81,11 +81,11 @@ Texture *texture_from_file(char *fname)
 	return tex;
 }
 
+static Texture *curr_tex = NULL;
+
 //-----------------------------------------------------------------------------
 void texture_bind(Texture *tex)
-{
-	static Texture *curr_tex = NULL;
-	
+{		
 	if (curr_tex != tex) {
 		glBindTexture(GL_TEXTURE_2D, tex->handle);
 		curr_tex = tex;
