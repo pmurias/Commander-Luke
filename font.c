@@ -95,10 +95,9 @@ void font_print(Font *fnt, int x, int y, char *fmt, ...)
 		GlyphInfo *g = hashmap_find(fnt->glyph_map, str);
 		if (g) {
 			texture_bind(g->sprite->texture);
-			blit_sprite(g->sprite, cx, cy + g->yoff);			
+			blit_sprite(g->sprite, cx + g->xoff, cy + g->yoff);			
 			cx += g->xadvance;
 		}
 	}
 	str_free(str);
 }
-
