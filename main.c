@@ -1,27 +1,28 @@
-#include <GL/glfw.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 
+#include "window.h"
 #include "texture.h"
 #include "socket.h"
 #include "str.h"
-#include "camera.h"
 #include "network.h"
-#include "commands.h"
 #include "single_player.h"
 #include "tcp_network.h"
 #include "blit.h"
 #include "font.h"
+#include "iso.h"
 
-int g_screenWidth = 800;
-int g_screenHeight = 600;
-int g_tileWidth = 160;
-int g_tileHeigth = 80;
+#include "commands.h"
+#include "camera.h"
+#include "critter.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
+
+#define MAX_CLIENTS 20
+Critter cri[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -45,78 +46,28 @@ void tilemap_free(TileMap * map)
 	free(map);
 }
 
-void blit(Texture * tex, int x, int y)
-{
-	if (x + tex->width >= 0 && x <= g_screenWidth && y + tex->height >= 0 && y <= g_screenHeight) {
-		glBindTexture(GL_TEXTURE_2D, tex->handle);
-		glBegin(GL_QUADS);
-		glTexCoord2f(0, 0);
-		glVertex2f(x, y);
-		glTexCoord2f(0, 1);
-		glVertex2f(x, y + tex->height);
-		glTexCoord2f(1, 1);
-		glVertex2f(x + tex->width, y + tex->height);
-		glTexCoord2f(1, 0);
-		glVertex2f(x + tex->width, y);
-		glEnd();
-	}
-}
-
-void tile_to_screen(float x, float y, float *ox, float *oy)
-{
-	*ox = (y - x) * 80.0;
-	*oy = (x + y) * 40.0;
-}
-
-void snap_screen_to_tile(float x, float y, float *ox, float *oy)
-{
-	*ox = round(y / 80.0f - x / 160.0f);
-	*oy = round(x / 160.0f + y / 80.0f);
-}
-
-void draw_tilemap(TileMap * map, Camera * cam, Texture ** tileset)
-{
-	float tCamX, tCamY;
-	float centerX, centerY;
-	float offX, offY;
-	snap_screen_to_tile(cam->x, cam->y, &tCamX, &tCamY);
-	tile_to_screen(tCamX, tCamY, &centerX, &centerY);
-	offX = centerX - cam->x;
-	offY = centerY - cam->y;
+void draw_tilemap(TileMap * map, Camera * cam, Sprite ** tileset)
+{	
+	iso_set_cam(cam->x, cam->y);
+			
 	for (int i = 0; i < cam->view * 2 + 1; i++)
 		for (int j = 0; j < cam->view + 1 - (i % 2); j++) {
-			float tileX = tCamX + i / 2 - j;
-			float tileY = tCamY + j + i / 2 + (i % 2) - cam->view;
+			float tileX = round(cam->x) + i / 2 - j;
+			float tileY = round(cam->y) + j + i / 2 + (i % 2) - cam->view;
 
-			if (tileX > 0 && tileY > 0 && tileX < map->width && tileY < map->height) {
-				Texture *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
+			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {				
+				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
 				float scrX, scrY;
-				tile_to_screen(tileX - tCamX, tileY - tCamY, &scrX, &scrY);
-				texture_bind(tile);
-				blit(tile, round(offX + scrX + g_screenWidth / 2 - 80), round(offY + scrY + g_screenHeight / 2 - (tile->height - 40)));
+				iso_world2screen(tileX, tileY, &scrX, &scrY);				
+				
+				blit_sprite(
+					tile, 
+					round(scrX - iso_tile_width()/2),
+					round(scrY - iso_tile_height()/2)
+				);
+				
 			}
 		}
-}
-
-void opengl_start()
-{
-	glfwInit();
-	glfwOpenWindowHint(GLFW_WINDOW_NO_RESIZE, 1);
-	glfwOpenWindow(g_screenWidth, g_screenHeight, 8, 8, 8, 0, 0, 0, GLFW_WINDOW);
-	glfwSetWindowTitle("Commander Luke");
-	//glfwDisable(GLFW_MOUSE_CURSOR);
-
-	glOrtho(0, g_screenWidth, g_screenHeight, 0, -1, 1);
-	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_COLOR_BUFFER_BIT);
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-void opengl_stop()
-{
-	glfwTerminate();
 }
 
 typedef struct {
@@ -141,63 +92,77 @@ void engine_free(Engine * engine)
 	free(engine);
 }
 
-Texture *g_tileset[3];
+Sprite *g_tileset[3];
 void load_assets()
 {
-	g_tileset[0] = texture_from_file("./data/tiles/template.png");
-	g_tileset[1] = texture_from_file("./data/tiles/grass1.png");
-	g_tileset[2] = texture_from_file("./data/tiles/walln.png");
+	g_tileset[0] = blit_load_sprite("./data/tiles/template.png");
+	g_tileset[1] = blit_load_sprite("./data/tiles/grass1.png");
+	g_tileset[2] = blit_load_sprite("./data/tiles/walln.png");
+	
+	blit_load_spritesheet("./data/SheetNolty.png", "./data/SheetNolty.txt");
+	
+	font_load("./data/font/jura.png", "./data/font/jura.fnt");
+	font_load("./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
+	
+	printf("Building animations...");
+	isoanim_build("Nolty.Idle", 10, 0.3);
+	isoanim_build("Nolty.Running", 15, 0.03);
+	printf("OK\n");
 }
 
 void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 {	
 	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
+void command_move_critter(Netcmd_MoveCritter *c)
+{
+	cri[c->sender].state = CRI_RUNNING;
+		
+	cri[c->sender].move_x = c->move_x;
+	cri[c->sender].move_y = c->move_y;
+}
 
 void client_loop(NetworkType * network)
 {
-	opengl_start();
-	load_assets();
+	window_open(800, 600, 0, "Commander Luke");	
+	load_assets();	
 
 	Engine *engine = engine_init();
 	Camera *camera = camera_init();
-	
-	Font *fnt = new_font();
-	font_load(fnt, "./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
 		
-
-	float last_frame_time = glfwGetTime();
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		cri[i].x = 0;
+		cri[i].y = 0;
+		cri[i].velocity = 0;
+		cri[i].face_x = 0;
+		cri[i].face_y = 1;
+		cri[i].state = CRI_IDLE;
+	}
+	
+	float time_step = 1.0/30.0;	
 	float time_accum = 0;
-	float time_step = 1.0/24.0;
-	float frame_time;
-	while (1) {
-		network->tick(network->state);
-				
-		int mouseX, mouseY;
-		glfwGetMousePos(&mouseX, &mouseY);
-
-		if (glfwGetKey('X'))
-			break;
-
-		frame_time = glfwGetTime() - last_frame_time;
-		time_accum += frame_time;
-		last_frame_time = glfwGetTime();
-		while (time_accum >= time_step) {
-			time_accum -= time_step;
-			if (glfwGetMouseButton(0)) {
-				float tileX, tileY;
-				snap_screen_to_tile(camera->x - g_screenWidth / 2 + mouseX, camera->y - g_screenHeight / 2 + mouseY, &tileX, &tileY);
-				if (tileX >= 0 && tileY >= 0) {
-					Netcmd_SetTile command;
-					command.header.type = NETCMD_SETTILE;
-					command.tile_x = tileX;
-					command.tile_y = tileY;
-					command.type = 1;
-					network->add_command(network->state, (void *)&command);
-				}				
+	int running = 1;
+	while (running) {
+		window_start_frame();
+		
+		network->tick(network->state);		
+		time_accum += window_frame_time();				
+		while (time_accum >= time_step) {			
+			time_accum -= time_step;			
+			
+			if (window_keypressed('X')) {
+				running = 0;
+				break;
+			}			
+			
+			if (window_mousedown(0)) {				
+				Netcmd_MoveCritter command;
+				command.header.type = NETCMD_MOVECRITTER;	
+				command.sender = network->get_id(network->state);
+				iso_screen2world(camera->x - window_width() / 2 + window_xmouse(), camera->y - window_height() / 2 + window_ymouse(), &command.move_x, &command.move_y);
+				network->add_command(network->state, (void *)&command);
 			}
 
-			
 			Netcmd *command;
 			while ((command = network->get_command(network->state))) {
 				switch (command->header.type) {
@@ -205,29 +170,41 @@ void client_loop(NetworkType * network)
 						command_set_tile(engine, (Netcmd_SetTile *) command);					
 						break;
 					}
+				case NETCMD_MOVECRITTER:{
+						command_move_critter((Netcmd_MoveCritter *) command);
+						break;
+					}
 				default:
 					printf("Unknown command\n");
 				}
 				free(command);
 			}
+			
+			for (int i = 0; i< MAX_CLIENTS; i++) {
+				critter_tick(&cri[i]);
+			}
 
-			network->logic_tick(network->state);		
+			network->logic_tick(network->state);					
+			camera->x = cri[network->get_id(network->state)].x;
+			camera->y = cri[network->get_id(network->state)].y;
+			window_poll_events();
 		}
+					
+		draw_tilemap(engine->map, camera, g_tileset);			
 		
-		camera_keyboard_control(camera);
+		for (int i = 0; i< MAX_CLIENTS; i++) {
+			critter_draw(&cri[i]);
+		}		
 		
-		glClear(GL_COLOR_BUFFER_BIT);
-		
-		draw_tilemap(engine->map, camera, g_tileset);
-		font_print(fnt, 10, 10, "Hello World!\nFPS: %d", (int)round(1.0/frame_time));
+		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0/window_frame_time()	));		
 
-		glfwSwapBuffers();
+		window_end_frame();				
 	}
 
 	network->cleanup(network->state);
 	camera_free(camera);
 	engine_free(engine);
-	opengl_stop();
+	window_close();
 }
 
 
@@ -243,6 +220,8 @@ void system_startup()
 	socket_startup();
 	commands_startup();
 	blit_startup();
+	font_startup();
+	iso_startup(160, 80);
 }
 
 int main(int argc, char **argv)

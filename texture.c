@@ -64,21 +64,25 @@ int texture_from_image(Texture *tex, Image *img)
 		0, img->has_alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, img->pixels);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);	
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	
 	return 1;
 }
 
 //-----------------------------------------------------------------------------
 Texture *texture_from_file(char *fname)
 {
-	Image img;
-	Texture *tex = malloc(sizeof(Texture));
+	Image img;	
 	
-	image_load_from_file(&img, fname);
-	texture_from_image(tex, &img);
-	image_free(&img);
-	return tex;
+	if (image_load_from_file(&img, fname)) {
+		Texture *tex = malloc(sizeof(Texture));
+		texture_from_image(tex, &img);
+		image_free(&img);
+		return tex;
+	} else {
+		printf("error: texture not found.\n");
+		return NULL;
+	}
 }
 
 static Texture *curr_tex = NULL;

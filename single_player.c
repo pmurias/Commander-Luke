@@ -25,6 +25,11 @@ static void cleanup(void *data)
 	queue_clear((Queue*)data);
 }
 
+static uint8_t get_id(void *data)
+{
+	return 0;
+}
+
 NetworkType *single_player_network(void)
 {
 	NetworkType *single = malloc(sizeof(NetworkType));
@@ -32,6 +37,7 @@ NetworkType *single_player_network(void)
 	single->logic_tick = noop;
 	single->add_command = add_command;
 	single->get_command = get_command;
+	single->get_id = get_id;
 	single->cleanup = cleanup;
 
 	Queue *state = new_queue(0);

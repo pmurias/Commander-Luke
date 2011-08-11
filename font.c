@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "font.h"
 #include "str.h"
@@ -19,6 +20,20 @@ typedef struct
 	int xadvance;
 } GlyphInfo;
 
+typedef struct
+{
+	HashMap *font_map;
+	Str *key_str;
+} _InternalState;
+_InternalState is;
+
+//-----------------------------------------------------------------------------
+void font_startup(void)
+{
+	is.font_map = new_hashmap(sizeof(Font*));
+	is.key_str = new_str();
+}
+
 //-----------------------------------------------------------------------------
 Font *new_font(void)
 {
@@ -28,20 +43,25 @@ Font *new_font(void)
 }
 
 //-----------------------------------------------------------------------------
-int font_load(Font *fnt, char *texfile, char *fntfile)
+Font *font_load(char *texfile, char *fntfile)
 {	
+	printf("Loading font '%s'... ", fntfile);	
+	Font *fnt = new_font();
+	
 	Texture *tex = texture_from_file(texfile);
 	
 	FILE *fp;
 	if ((fp = fopen(fntfile, "rt")) == NULL) {
 		printf("error: cannot open font file '%s'\n", fntfile);		
-		return 0;
+		return NULL;
 	}
 		
-	char namebuf[2];
+	char namebuf[255];
 	Str *str = new_str();
-		
-	printf("Loading font '%s'\n", fntfile);
+					
+	fscanf(fp, "font %s\n", namebuf);
+	str_set(str, namebuf);
+	hashmap_ins(is.font_map, str, &fnt);
 	
 	fscanf(fp, "size %d\n", &fnt->size);
 	while (!feof(fp)) {
@@ -66,11 +86,24 @@ int font_load(Font *fnt, char *texfile, char *fntfile)
 	}	
 	str_free(str);
 	fclose(fp);
-	return 1;
+	printf("OK\n");
+	return fnt;
 }
 
 //-----------------------------------------------------------------------------
-void font_print(Font *fnt, int x, int y, char *fmt, ...)
+Font *font_get(char *name)
+{
+	str_set(is.key_str, name);
+	Font **fptr = hashmap_find(is.font_map, is.key_str);
+	if (fptr) {
+		return *fptr;
+	} else {
+		return NULL;
+	}
+}
+
+//-----------------------------------------------------------------------------
+void font_print(Font *fnt, int x, int y, float s, char *fmt, ...)
 {	
 	static char text[8196];
 	va_list args;
@@ -86,17 +119,16 @@ void font_print(Font *fnt, int x, int y, char *fmt, ...)
 	for (int i=0; i<strlen(text); i++) {
 		if (text[i] == '\n') {
 			cx = x;
-			cy += fnt->size;
+			cy += s * fnt->size;
 			continue;
 		}
 		namebuf[0] = text[i];
 		namebuf[1] = 0;
 		str_set(str, namebuf);
 		GlyphInfo *g = hashmap_find(fnt->glyph_map, str);
-		if (g) {
-			texture_bind(g->sprite->texture);
-			blit_sprite(g->sprite, cx + g->xoff, cy + g->yoff);			
-			cx += g->xadvance;
+		if (g) {			
+			blit_sprite_scaled(g->sprite, cx + round(s * g->xoff), cy + round(s * g->yoff), s);
+			cx += s * g->xadvance;
 		}
 	}
 	str_free(str);

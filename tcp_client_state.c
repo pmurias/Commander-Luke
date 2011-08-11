@@ -6,7 +6,6 @@
 #include "network.h"
 #include "queue.h"
 #include "socket.h"
-#include "str.h"
 
 typedef struct  {
 	Queue *out;	
@@ -155,6 +154,13 @@ static void cleanup(void *d)
 }
 
 //-----------------------------------------------------------------------------
+static uint8_t get_id(void *d)
+{
+	TcpClientState *state = (TcpClientState *) d;
+	return state->client_id;
+}
+
+//-----------------------------------------------------------------------------
 NetworkType *new_tcp_client_state(char *ip)
 {
 	NetworkType *tcp = malloc(sizeof(NetworkType));
@@ -162,6 +168,7 @@ NetworkType *new_tcp_client_state(char *ip)
 	tcp->logic_tick = logic_tick;
 	tcp->add_command = add_command;
 	tcp->get_command = get_command;
+	tcp->get_id = get_id;
 	tcp->cleanup = cleanup;
 
 	TcpClientState *state = (TcpClientState *) malloc(sizeof(TcpClientState));

@@ -14,9 +14,17 @@ typedef struct {
 	int type;
 } Netcmd_SetTile;
 
+typedef struct {
+	NetcmdHeader header;	
+	uint8_t sender;
+	float move_x;
+	float move_y;
+} Netcmd_MoveCritter;
+
 #pragma pack(pop)
 
 #define NETCMD_SETTILE 1
+#define NETCMD_MOVECRITTER 2
 
 void commands_startup(void);
 

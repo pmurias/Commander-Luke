@@ -8,6 +8,8 @@ typedef struct
 	Sprite **frames;
 	int num_frames;
 	float delay;
+	int width;
+	int height;
 } AnimData;
 
 AnimData *new_anim(void);

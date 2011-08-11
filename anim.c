@@ -22,6 +22,9 @@ void anim_add_frame(AnimData *anim, char *frame)
 	anim->num_frames += 1;
 	anim->frames = realloc(anim->frames, anim->num_frames *sizeof(Sprite*));
 	anim->frames[anim->num_frames-1] = blit_get_sprite(frame);
+	
+	anim->width = anim->frames[anim->num_frames-1]->width;
+	anim->height = anim->frames[anim->num_frames-1]->height;
 }
 
 //-----------------------------------------------------------------------------
@@ -30,15 +33,17 @@ void anim_add_frame_range(AnimData *anim, char *namePrefix, int start, int end)
 	char namebuf[255];
 	anim->frames = realloc(anim->frames, (anim->num_frames + (end - start + 1)) * sizeof(Sprite*));
 	for (int i = start; i <= end; i++) {
-		sprintf(namebuf, "%s%03d", namePrefix, i);
+		sprintf(namebuf, "%s%03d", namePrefix, i);		
 		anim->frames[anim->num_frames] = blit_get_sprite(namebuf);
-		anim->num_frames += 1;		
+		anim->num_frames += 1;
 	}
+	anim->width = anim->frames[0]->width;
+	anim->height = anim->frames[0]->height;
 }
 
 //-----------------------------------------------------------------------------
 void anim_blit_frame(AnimData *anim, int x, int y, float time)
-{
+{	
 	blit_sprite(anim->frames[(int)(round(time / anim->delay)) % anim->num_frames], x, y);
 }
 
