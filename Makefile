@@ -30,8 +30,7 @@ SOURCES= \
 SOURCES+= \
 	main.c \
 	camera.c \
-	commands.c \
-	critter.c
+	commands.c 
 	
 OBJECTS=$(SOURCES:.c=.o)
 

@@ -19,10 +19,7 @@ typedef struct {
 
 int netcmd_sizes[255];
 
-inline int command_size(Netcmd *cmd)
-{
-	return netcmd_sizes[cmd->header.type];
-}
+#define command_size(cmd) netcmd_sizes[(cmd)->header.type]
 
 typedef struct {
     void* state;
