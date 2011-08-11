@@ -23,7 +23,7 @@
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
 #define MAX_CLIENTS 20
-Critter* cri[MAX_CLIENTS];
+Critter *cri[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -48,25 +48,22 @@ void tilemap_free(TileMap * map)
 }
 
 void draw_tilemap(TileMap * map, Camera * cam, Sprite ** tileset)
-{	
+{
 	iso_set_cam(cam->x, cam->y);
-			
+
 	for (int i = 0; i < cam->view * 2 + 1; i++)
 		for (int j = 0; j < cam->view + 1 - (i % 2); j++) {
 			float tileX = round(cam->x) + i / 2 - j;
 			float tileY = round(cam->y) + j + i / 2 + (i % 2) - cam->view;
 
-			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {				
+			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {
 				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
 				float scrX, scrY;
-				iso_world2screen(tileX, tileY, &scrX, &scrY);				
-				
-				blit_sprite(
-					tile, 
-					round(scrX - iso_tile_width()/2),
-					round(scrY - iso_tile_height()/2)
-				);
-				
+				iso_world2screen(tileX, tileY, &scrX, &scrY);
+
+				blit_sprite(tile, round(scrX - iso_tile_width() / 2), round(scrY - iso_tile_height() / 2)
+				    );
+
 			}
 		}
 }
@@ -82,7 +79,7 @@ void usage()
 
 Engine *engine_init()
 {
-        human_init();
+	human_init();
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -100,12 +97,12 @@ void load_assets()
 	g_tileset[0] = blit_load_sprite("./data/tiles/template.png");
 	g_tileset[1] = blit_load_sprite("./data/tiles/grass1.png");
 	g_tileset[2] = blit_load_sprite("./data/tiles/walln.png");
-	
+
 	blit_load_spritesheet("./data/SheetNolty.png", "./data/SheetNolty.txt");
-	
+
 	font_load("./data/font/jura.png", "./data/font/jura.fnt");
 	font_load("./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
-	
+
 	printf("Building animations...");
 	isoanim_build("Nolty.Idle", 10, 0.3);
 	isoanim_build("Nolty.Running", 15, 0.03);
@@ -113,41 +110,41 @@ void load_assets()
 }
 
 void command_set_tile(Engine * engine, Netcmd_SetTile * c)
-{	
+{
 	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
 
 void client_loop(NetworkType * network)
 {
-	window_open(800, 600, 0, "Commander Luke");	
-	load_assets();	
+	window_open(800, 600, 0, "Commander Luke");
+	load_assets();
 
 	Engine *engine = engine_init();
 	Camera *camera = camera_init();
-		
+
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-                cri[i] = human_new(0,0);
+		cri[i] = human_new(0, 0);
 	}
-	
-	float time_step = 1.0/30.0;	
+
+	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
 	int running = 1;
 	while (running) {
 		window_start_frame();
-		
-		network->tick(network->state);		
-		time_accum += window_frame_time();				
-		while (time_accum >= time_step) {			
-			time_accum -= time_step;			
-			
+
+		network->tick(network->state);
+		time_accum += window_frame_time();
+		while (time_accum >= time_step) {
+			time_accum -= time_step;
+
 			if (window_keypressed('X')) {
 				running = 0;
 				break;
-			}			
-			
-			if (window_mousedown(0)) {				
+			}
+
+			if (window_mousedown(0)) {
 				Netcmd_MoveCritter command;
-				command.header.type = NETCMD_MOVECRITTER;	
+				command.header.type = NETCMD_MOVECRITTER;
 				command.sender = network->get_id(network->state);
 				iso_screen2world(camera->x - window_width() / 2 + window_xmouse(), camera->y - window_height() / 2 + window_ymouse(), &command.move_x, &command.move_y);
 				network->add_command(network->state, (void *)&command);
@@ -157,12 +154,12 @@ void client_loop(NetworkType * network)
 			while ((command = network->get_command(network->state))) {
 				switch (command->header.type) {
 				case NETCMD_SETTILE:{
-						command_set_tile(engine, (Netcmd_SetTile *) command);					
+						command_set_tile(engine, (Netcmd_SetTile *) command);
 						break;
 					}
 				case NETCMD_MOVECRITTER:{
-                                      Netcmd_MoveCritter* move = (Netcmd_MoveCritter*) command;
-          cri[move->sender]->vtable->order(cri[move->sender],command);
+						Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;
+						cri[move->sender]->vtable->order(cri[move->sender], command);
 						break;
 					}
 				default:
@@ -170,27 +167,27 @@ void client_loop(NetworkType * network)
 				}
 				free(command);
 			}
-			
-			for (int i = 0; i< MAX_CLIENTS; i++) {
-                            cri[i]->vtable->tick(cri[i]);
+
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				cri[i]->vtable->tick(cri[i]);
 			}
 
-			network->logic_tick(network->state);					
-                        Critter* c = cri[network->get_id(network->state)];
-                        c->vtable->get_viewpoint(c,&camera->x,&camera->y);
+			network->logic_tick(network->state);
+			Critter *c = cri[network->get_id(network->state)];
+			c->vtable->get_viewpoint(c, &camera->x, &camera->y);
 
 			window_poll_events();
 		}
-					
-		draw_tilemap(engine->map, camera, g_tileset);			
-		
-		for (int i = 0; i< MAX_CLIENTS; i++) {
-                        cri[i]->vtable->draw(cri[i],window_frame_time());
-		}		
-		
-		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0/window_frame_time()	));		
 
-		window_end_frame();				
+		draw_tilemap(engine->map, camera, g_tileset);
+
+		for (int i = 0; i < MAX_CLIENTS; i++) {
+			cri[i]->vtable->draw(cri[i], window_frame_time());
+		}
+
+		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));
+
+		window_end_frame();
 	}
 
 	network->cleanup(network->state);
@@ -199,11 +196,10 @@ void client_loop(NetworkType * network)
 	window_close();
 }
 
-
-void server_loop(NetworkType *network)
-{		
+void server_loop(NetworkType * network)
+{
 	while (1) {
-		network->tick(network->state);		
+		network->tick(network->state);
 	}
 }
 
@@ -217,9 +213,9 @@ void system_startup()
 }
 
 int main(int argc, char **argv)
-{	
+{
 	system_startup();
-		
+
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
 			server_loop(new_tcp_server_state());
@@ -233,7 +229,7 @@ int main(int argc, char **argv)
 	} else {
 		usage();
 	}
-	
+
 	socket_startup();
 
 	return 0;
