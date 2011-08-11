@@ -105,5 +105,6 @@ Critter* human_new(float x,float y) {
     h->face_x = 0;
     h->face_y = 1;
     h->state = CRI_IDLE;
+    h->anim_time = 0;
     return (Critter*)h;
 }
