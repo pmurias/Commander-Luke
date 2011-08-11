@@ -18,7 +18,7 @@
 #include "commands.h"
 #include "camera.h"
 #include "critter.h"
-#include "human.h"
+#include "critters/human.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 

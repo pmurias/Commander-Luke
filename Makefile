@@ -24,7 +24,7 @@ SOURCES= \
 	tcp_client_state.c \
 	tcp_server_state.c \
 	rand.c \
-	human.c
+	critters/human.c
 
 # game modules
 SOURCES+= \
@@ -42,7 +42,7 @@ luke: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CLIBS) -o luke
 
 %.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -I. $< -o $@
 
 clean:
 	rm -rf $(OBJECTS) luke like.exe
