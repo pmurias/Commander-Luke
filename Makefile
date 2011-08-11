@@ -38,3 +38,7 @@ luke: $(OBJECTS)
 
 clean:
 	rm -rf $(OBJECTS) luke like.exe
+
+tests: tests/rand
+tests/rand: tests/rand.c rand.o
+	gcc -I. rand.o tests/rand.c -o tests/rand
