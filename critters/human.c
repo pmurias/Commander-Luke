@@ -9,7 +9,8 @@
 #define CRI_RUNNING 1
 
 typedef struct {
-	CRITTER_BASE float x;
+	CRITTER_BASE 
+	float x;
 	float y;
 
 	float velocity;
@@ -25,6 +26,7 @@ typedef struct {
 	float move_y;
 } Human;
 
+//-----------------------------------------------------------------------------
 static void tick(Critter * c)
 {
 	Human *cri = (Human *) c;
@@ -37,7 +39,7 @@ static void tick(Critter * c)
 		cri->face_x = cri->move_x - cri->x;
 		cri->face_y = cri->move_y - cri->y;
 		float len = sqrt(cri->face_x * cri->face_x + cri->face_y * cri->face_y);
-		if (len < 0.1) {
+		if (len < 0.12) {
 			cri->state = CRI_IDLE;
 		}
 		cri->face_x /= len;
@@ -48,6 +50,7 @@ static void tick(Critter * c)
 	}
 }
 
+//-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
 {
 	Human *cri = (Human *) c;
@@ -59,15 +62,18 @@ static void draw(Critter * c, float time_delta)
 	} else if (cri->state == CRI_RUNNING) {
 		anim = isoanim_get("Nolty.Running");
 	}
+
 	wx -= isoanim_width(anim) / 2;
 	wy -= isoanim_height(anim) - isoanim_width(anim) / 4;
-	isoanim_blit_frame(anim, wx, wy, cri->anim_time, cri->face_x, cri->face_y);
+	isoanim_blit_frame(anim, wx, wy, cri->anim_time, cri->face_x, cri->face_y);	
 }
 
+//-----------------------------------------------------------------------------
 static void think(Critter * critter)
 {
 }
 
+//-----------------------------------------------------------------------------
 static void order(Critter * c, Netcmd * command)
 {
 	Human *cri = (Human *) c;
@@ -82,6 +88,7 @@ static void order(Critter * c, Netcmd * command)
 	}
 }
 
+//-----------------------------------------------------------------------------
 static void get_viewpoint(Critter * c, float *x, float *y)
 {
 	Human *cri = (Human *) c;
@@ -89,8 +96,9 @@ static void get_viewpoint(Critter * c, float *x, float *y)
 	*y = cri->y;
 }
 
+//-----------------------------------------------------------------------------
 CritterVTable *vtable;
-void human_init()
+void human_init_vtable()
 {
 	vtable = malloc(sizeof(CritterVTable));
 	vtable->tick = tick;
@@ -100,7 +108,8 @@ void human_init()
 	vtable->get_viewpoint = get_viewpoint;
 }
 
-Critter *human_new(float x, float y)
+//-----------------------------------------------------------------------------
+Critter *new_human(float x, float y)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
 	h->vtable = vtable;

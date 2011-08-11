@@ -24,13 +24,16 @@ SOURCES= \
 	tcp_client_state.c \
 	tcp_server_state.c \
 	rand.c \
-	critters/human.c
 
 # game modules
 SOURCES+= \
 	main.c \
 	camera.c \
-	commands.c 
+	commands.c \
+	
+# critters
+SOURCES+= \
+	critters/human.c
 	
 OBJECTS=$(SOURCES:.c=.o)
 

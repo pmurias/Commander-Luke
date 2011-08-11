@@ -94,15 +94,15 @@ void iso_world2screen(float x, float y, float *ox, float *oy)
 //-----------------------------------------------------------------------------
 void iso_screen2world(float x, float y, float *ox, float *oy)
 {
-	*ox = y / is.tile_height - x / is.tile_width + is.cam_x;
-	*oy = x / is.tile_width + y / is.tile_height + is.cam_y;
+	*ox = (y-window_height()/2) / is.tile_height - (x-window_width()/2) / is.tile_width + is.cam_x;
+	*oy = (x-window_width()/2) / is.tile_width + (y-window_height()/2) / is.tile_height + is.cam_y;
 }
 
 //-----------------------------------------------------------------------------
 void iso_snap_screen2world(float x, float y, float *ox, float *oy)
 {
-	*ox = round(y / is.tile_height - x / is.tile_width + is.cam_x);
-	*oy = round(x / is.tile_width + y / is.tile_height + is.cam_y);
+	*ox = round((y-window_height()/2) / is.tile_height - (x-window_width()/2) / is.tile_width + is.cam_x);
+	*oy = round((x-window_width()/2) / is.tile_width + (y-window_height()/2) / is.tile_height + is.cam_y);
 }
 
 //-----------------------------------------------------------------------------

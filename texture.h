@@ -19,7 +19,8 @@ typedef struct
 int image_load_from_file(Image *img, char *name);
 void image_free(Image *img);
 
-int texture_from_image(Texture *tex, Image *img);
+Texture *texture_from_image(Image *img);
+Texture *texture_from_image_part(Image *img, int u, int v, int w, int h);
 Texture* texture_from_file(char* name);
 void texture_bind(Texture *tex);
 

@@ -14,6 +14,7 @@
 #include "blit.h"
 #include "font.h"
 #include "iso.h"
+#include "rand.h"
 
 #include "commands.h"
 #include "camera.h"
@@ -37,7 +38,8 @@ TileMap *tilemap_init(int w, int h)
 	map->tiles = NEWC(int, w * h);
 	map->width = w;
 	map->height = h;
-	memset(map->tiles, 0, w * h * 4);
+	for (int i = 0; i < w * h; i++) map->tiles[i] = 1+rand_rand()%4;
+	//memset(map->tiles, 0, w * h * 4);
 	return map;
 }
 
@@ -79,7 +81,7 @@ void usage()
 
 Engine *engine_init()
 {
-	human_init();
+	human_init_vtable();
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -91,14 +93,16 @@ void engine_free(Engine * engine)
 	free(engine);
 }
 
-Sprite *g_tileset[3];
+Sprite *g_tileset[12];
 void load_assets()
 {
 	g_tileset[0] = blit_load_sprite("./data/tiles/template.png");
-	g_tileset[1] = blit_load_sprite("./data/tiles/grass1.png");
-	g_tileset[2] = blit_load_sprite("./data/tiles/walln.png");
+	g_tileset[1] = blit_load_sprite("./data/tiles/grass0.png");
+	g_tileset[2] = blit_load_sprite("./data/tiles/grass1.png");
+	g_tileset[3] = blit_load_sprite("./data/tiles/grass2.png");
+	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
 
-	blit_load_spritesheet("./data/SheetNolty.png", "./data/SheetNolty.txt");
+	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
 
 	font_load("./data/font/jura.png", "./data/font/jura.fnt");
 	font_load("./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
@@ -123,7 +127,7 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = human_new(0, 0);
+		cri[i] = new_human(50, 50);
 	}
 
 	float time_step = 1.0 / 30.0;
@@ -146,7 +150,7 @@ void client_loop(NetworkType * network)
 				Netcmd_MoveCritter command;
 				command.header.type = NETCMD_MOVECRITTER;
 				command.sender = network->get_id(network->state);
-				iso_screen2world(camera->x - window_width() / 2 + window_xmouse(), camera->y - window_height() / 2 + window_ymouse(), &command.move_x, &command.move_y);
+				iso_screen2world(window_xmouse(),  window_ymouse(), &command.move_x, &command.move_y);
 				network->add_command(network->state, (void *)&command);
 			}
 

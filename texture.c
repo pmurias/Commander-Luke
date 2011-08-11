@@ -54,8 +54,9 @@ void image_free(Image *img)
 }
 
 //-----------------------------------------------------------------------------
-int texture_from_image(Texture *tex, Image *img)
+Texture *texture_from_image(Image *img)
 {	
+	Texture *tex = malloc(sizeof(Texture));
 	tex->width = img->width;
 	tex->height = img->height;
 	glGenTextures(1, &tex->handle);
@@ -66,7 +67,31 @@ int texture_from_image(Texture *tex, Image *img)
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	
-	return 1;
+	return tex;
+}
+
+//-----------------------------------------------------------------------------
+Texture *texture_from_image_part(Image *img, int u, int v, int w, int h)
+{	
+	Texture *tex = malloc(sizeof(Texture));
+	tex->width = w;
+	tex->height = h;
+	glGenTextures(1, &tex->handle);
+	glBindTexture(GL_TEXTURE_2D, tex->handle);
+	int bpp = img->has_alpha ? 4 : 3;
+	unsigned char *img_part = malloc(w * h * bpp);
+	unsigned char *img_start = img->pixels + (v*img->width + u)*bpp;
+	for (int i = 0; i < h; i++) {
+		memcpy(img_part + i*w*bpp, img_start + i*img->width*bpp, w*bpp);		
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, bpp, w, h, 
+		0, img->has_alpha ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, img_part);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);	
+	free(img_part);
+	return tex;
 }
 
 //-----------------------------------------------------------------------------
@@ -75,8 +100,7 @@ Texture *texture_from_file(char *fname)
 	Image img;	
 	
 	if (image_load_from_file(&img, fname)) {
-		Texture *tex = malloc(sizeof(Texture));
-		texture_from_image(tex, &img);
+		Texture *tex = texture_from_image(&img);
 		image_free(&img);
 		return tex;
 	} else {

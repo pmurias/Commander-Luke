@@ -1,10 +1,13 @@
 #ifndef __CRITTER_H__
-#include "commands.h"
 #define __CRITTER_H__
 
-#define CRITTER_BASE CritterVTable* vtable;
+#include "commands.h"
 
-struct CritterVTable; typedef struct CritterVTable CritterVTable;
+#define CRITTER_BASE \
+	CritterVTable* vtable;
+
+struct CritterVTable; 
+typedef struct CritterVTable CritterVTable;
 
 typedef struct {
     CRITTER_BASE

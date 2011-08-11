@@ -3,7 +3,7 @@
 
 #include "critter.h"
 
-Critter* human_new(float x,float y);
-void human_init(void);
+Critter* new_human(float x,float y);
+void human_init_vtable(void);
 
 #endif
