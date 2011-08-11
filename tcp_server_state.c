@@ -6,7 +6,6 @@
 #include "network.h"
 #include "queue.h"
 #include "socket.h"
-#include "str.h"
 
 #define MAX_CONNECTIONS 20
 

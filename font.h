@@ -9,8 +9,10 @@ typedef struct
 	int size;
 } Font;
 
+void font_startup(void);
 Font *new_font(void);
-int font_load(Font *fnt, char *texfile, char *fntfile);
-void font_print(Font *fnt, int x, int y, char *fmt, ...);
+Font *font_load(char *texfile, char *fntfile);
+Font *font_get(char *name);
+void font_print(Font *fnt, int x, int y, float s, char *fmt, ...);
 
 #endif

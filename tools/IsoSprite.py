@@ -3,7 +3,7 @@
 # - by default, script renders all availible actions. if you want to render only some of the actions
 #   put the actions names at the 'this_actions_only' list
 # - sprites will be saved at subdirectory of .blend file directory named after Mesh object name. 
-#   each animation will have its own prefix based on action name, i.e. //MeshName/AnimName_frameNo.png
+#   each animation will have its own prefix based on action name, i.e. //MeshName/MeshName.AnimNameframeNo.png
 # - each of the selected lights will gain 'AutoTrack' constraint, to track selected model
 # - due lack of proper function in API, lights should be manually parented to camera
 # - current camera will track the model too
@@ -76,7 +76,7 @@ def do_rendering(len, name):
 	
 	set_cam_ipo(len)
 	
-	scene.render.setRenderPath('//'+obName+'/'+name+'_###')
+	scene.render.setRenderPath('//'+obName+'/'+obName+'.'+name+'###')
 	scene.render.renderAnim()	
 	
 #-------------------------------------------------------------------------------------		
