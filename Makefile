@@ -23,7 +23,8 @@ SOURCES= \
 	commands.c \
 	single_player.c \
 	tcp_client_state.c \
-	tcp_server_state.c
+	tcp_server_state.c \
+	rand.c
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o
