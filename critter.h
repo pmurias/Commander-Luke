@@ -1,28 +1,21 @@
 #ifndef __CRITTER_H__
+#include "commands.h"
 #define __CRITTER_H__
 
-#define CRI_IDLE 0
-#define CRI_RUNNING 1
+#define CRITTER_BASE CritterVTable* vtable;
 
-typedef struct
-{	
-	float x;
-	float y;
-	
-	float velocity;
-	
-	float face_x;
-	float face_y;
-	
-	float anim_time;
-	
-	int state;
-	
-	float move_x;
-	float move_y;
-} Critter;
+struct CritterVTable; typedef struct CritterVTable CritterVTable;
 
-void critter_tick(Critter *cri);
-void critter_draw(Critter *cri);
+typedef struct {
+    CRITTER_BASE
+} Critter ;
 
-#endif // __CRITTER_H__
+struct CritterVTable {
+  void (*draw)(Critter* critter,float time_delta); // The critter displays itself
+  void (*think)(Critter* critter); // The critter AI gives itself orders
+  void (*tick)(Critter* critter); // The critter update it's state: walks, shoots etc.
+  void (*order)(Critter* critter,Netcmd* command); // Orders the critter to execute command
+  void (*get_viewpoint)(Critter* critter,float *x,float *y);
+};
+
+#endif

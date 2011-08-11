@@ -23,7 +23,8 @@ SOURCES= \
 	single_player.c \
 	tcp_client_state.c \
 	tcp_server_state.c \
-	rand.c
+	rand.c \
+	human.c
 
 # game modules
 SOURCES+= \

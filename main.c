@@ -18,11 +18,12 @@
 #include "commands.h"
 #include "camera.h"
 #include "critter.h"
+#include "human.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
 #define MAX_CLIENTS 20
-Critter cri[MAX_CLIENTS];
+Critter* cri[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -81,6 +82,7 @@ void usage()
 
 Engine *engine_init()
 {
+        human_init();
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -114,13 +116,6 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 {	
 	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
-void command_move_critter(Netcmd_MoveCritter *c)
-{
-	cri[c->sender].state = CRI_RUNNING;
-		
-	cri[c->sender].move_x = c->move_x;
-	cri[c->sender].move_y = c->move_y;
-}
 
 void client_loop(NetworkType * network)
 {
@@ -131,12 +126,7 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 		
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i].x = 0;
-		cri[i].y = 0;
-		cri[i].velocity = 0;
-		cri[i].face_x = 0;
-		cri[i].face_y = 1;
-		cri[i].state = CRI_IDLE;
+                cri[i] = human_new(0,0);
 	}
 	
 	float time_step = 1.0/30.0;	
@@ -171,7 +161,8 @@ void client_loop(NetworkType * network)
 						break;
 					}
 				case NETCMD_MOVECRITTER:{
-						command_move_critter((Netcmd_MoveCritter *) command);
+                                      Netcmd_MoveCritter* move = (Netcmd_MoveCritter*) command;
+          cri[move->sender]->vtable->order(cri[move->sender],command);
 						break;
 					}
 				default:
@@ -181,19 +172,20 @@ void client_loop(NetworkType * network)
 			}
 			
 			for (int i = 0; i< MAX_CLIENTS; i++) {
-				critter_tick(&cri[i]);
+                            cri[i]->vtable->tick(cri[i]);
 			}
 
 			network->logic_tick(network->state);					
-			camera->x = cri[network->get_id(network->state)].x;
-			camera->y = cri[network->get_id(network->state)].y;
+                        Critter* c = cri[network->get_id(network->state)];
+                        c->vtable->get_viewpoint(c,&camera->x,&camera->y);
+
 			window_poll_events();
 		}
 					
 		draw_tilemap(engine->map, camera, g_tileset);			
 		
 		for (int i = 0; i< MAX_CLIENTS; i++) {
-			critter_draw(&cri[i]);
+                        cri[i]->vtable->draw(cri[i],window_frame_time());
 		}		
 		
 		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0/window_frame_time()	));		
