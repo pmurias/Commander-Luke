@@ -21,6 +21,8 @@
 #include "critter.h"
 #include "critters/human.h"
 #include "critters/blurred.h"
+#include "spell.h"
+#include "spells/flare.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
@@ -28,6 +30,7 @@
 Critter *cri[MAX_CLIENTS];
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
+Spell *spells[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -81,6 +84,7 @@ Engine *engine_init()
 {
 	human_init_vtable();
 	blurred_init_vtable();
+	flare_init_vtable();
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -99,10 +103,12 @@ void load_assets()
 	g_tileset[1] = blit_load_sprite("./data/tiles/grass0.png");
 	g_tileset[2] = blit_load_sprite("./data/tiles/grass1.png");
 	g_tileset[3] = blit_load_sprite("./data/tiles/grass2.png");
-	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
+	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");		
 
 	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
 	blit_load_spritesheet("./data/blurred.png", "./data/blurred.txt");
+	
+	blit_load_sprite("./data/flare.png")->blend_mode = BLEND_ADD;	
 
 	font_load("./data/font/jura.png", "./data/font/jura.fnt");
 	font_load("./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
@@ -144,6 +150,8 @@ void client_loop(NetworkType * network)
 	light->y = 50;
 	light->range = 4;
 	
+	iso_set_ambient(0.1, 0.1, 0.1);	
+	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
 	int running = 1;
@@ -165,7 +173,16 @@ void client_loop(NetworkType * network)
 				command.header.type = NETCMD_MOVECRITTER;
 				command.sender = network->get_id(network->state);
 				iso_screen2world(window_xmouse(),  window_ymouse(), &command.move_x, &command.move_y);
-				network->add_command(network->state, (void *)&command);
+				network->add_command(network->state, (Netcmd*)&command);
+			}
+			if (window_mousepressed(1)) {								
+				Netcmd_SpawnFlare cmd;
+				cmd.header.type = NETCMD_SPAWNFLARE;
+				cmd.sender = network->get_id(network->state);
+				Critter *player = cri[cmd.sender];
+				player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);																
+				iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
+				network->add_command(network->state, (Netcmd*)&cmd);
 			}
 
 			Netcmd *command;
@@ -181,6 +198,13 @@ void client_loop(NetworkType * network)
 						cri[move->sender]->vtable->order(cri[move->sender], command);
 						break;
 					}
+				case NETCMD_SPAWNFLARE:{
+						Netcmd_SpawnFlare *sf = (Netcmd_SpawnFlare *) command;
+						if (!spells[sf->sender]) {
+							spells[sf->sender] = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
+						}
+						break;
+					}				
 				default:
 					printf("Unknown command\n");
 				}
@@ -189,7 +213,9 @@ void client_loop(NetworkType * network)
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				cri[i]->vtable->tick(cri[i]);
+				if (spells[i])  spells[i]->vtable->tick(&spells[i]);
 			}
+						
 
 			network->logic_tick(network->state);
 			Critter *c = cri[network->get_id(network->state)];
@@ -205,7 +231,10 @@ void client_loop(NetworkType * network)
 			if (active[i]) { 
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
 			}
-		}
+			if (spells[i]) {
+				spells[i]->vtable->draw(spells[i], window_frame_time());
+			}
+		}		
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));
 

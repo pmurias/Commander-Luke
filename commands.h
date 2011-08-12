@@ -21,10 +21,20 @@ typedef struct {
 	float move_y;
 } Netcmd_MoveCritter;
 
+typedef struct {
+	NetcmdHeader header;	
+	uint8_t sender;
+	float x;
+	float y;
+	float target_x;
+	float target_y;
+} Netcmd_SpawnFlare;
+
 #pragma pack(pop)
 
 #define NETCMD_SETTILE 1
 #define NETCMD_MOVECRITTER 2
+#define NETCMD_SPAWNFLARE 3
 
 void commands_startup(void);
 

@@ -10,7 +10,7 @@
 
 typedef struct {
 	CRITTER_BASE;
-        float x;
+	float x;
 	float y;
 
 	float velocity;

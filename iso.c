@@ -160,6 +160,19 @@ IsoLight *new_isolight(void)
 }
 
 //-----------------------------------------------------------------------------
+void free_isolight(IsoLight **light)
+{
+	for (int i = 0; i<MAX_LIGHTS; i++) {
+		if (is.lights[i] == *light) {
+			free(*light);
+			*light = NULL;
+			is.lights[i] = NULL;
+			break;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
 void iso_illuminate(float x, float y, float *r, float *g, float *b)
 {
 	*r = is.ambient_r;
@@ -225,8 +238,6 @@ void isoanim_blit_frame(IsoAnim *anim, float x, float y, float time, float dx, f
 {
 	float wx, wy;
 	iso_world2screen(x, y, &wx, &wy);
-	wx -= isoanim_width(anim) / 2;
-	wy -= isoanim_height(anim) - isoanim_width(anim) / 4;
 	
 	int dir = iso_get_dir(dx, dy);	
 	Sprite *frame = anim_get_frame(anim->anims[dir], time);

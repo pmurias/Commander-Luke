@@ -82,6 +82,12 @@ Font *font_load(char *texfile, char *fntfile)
 		glyph.sprite->r = 1;
 		glyph.sprite->g = 1;
 		glyph.sprite->b = 1;
+		glyph.sprite->alpha = 1;
+		
+		glyph.sprite->center_x = 0;
+		glyph.sprite->center_y = 0;
+		
+		glyph.sprite->blend_mode = BLEND_ALPHA;
 		
 		namebuf[0] = id;
 		namebuf[1] = 0;

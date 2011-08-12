@@ -36,6 +36,10 @@ SOURCES+= \
 	critters/human.c\
 	critters/blurred.c
 	
+# spells
+SOURCES+= \
+	spells/flare.c
+	
 OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o

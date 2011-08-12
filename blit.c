@@ -11,9 +11,9 @@ typedef struct
 {
 	HashMap *sprites;
 	Str *key_str;	
-} _InternalState;
-
-static _InternalState is;
+	int blend_mode;
+} InternalState;
+static InternalState is;
 
 //-----------------------------------------------------------------------------
 void blit_startup(void)
@@ -21,6 +21,7 @@ void blit_startup(void)
 	is.sprites = malloc(sizeof(HashMap));
 	hashmap_init(is.sprites, sizeof(Sprite*), 64);
 	is.key_str = new_str();
+	is.blend_mode = BLEND_ALPHA;
 }
 
 //-----------------------------------------------------------------------------
@@ -40,6 +41,12 @@ Sprite *blit_load_sprite(char *texname)
 	sprite->r = 1;
 	sprite->g = 1;
 	sprite->b = 1;
+	sprite->alpha = 1;
+	
+	sprite->center_x = sprite->width/2;
+	sprite->center_y = sprite->height/2;
+	
+	sprite->blend_mode = BLEND_ALPHA;
 	
 	str_set(is.key_str, texname);
 	hashmap_ins(is.sprites, is.key_str, &sprite);
@@ -80,6 +87,12 @@ int blit_load_spritesheet(char *texname, char *mapname)
 		sprite->r = 1;
 		sprite->g = 1;
 		sprite->b = 1;
+		sprite->alpha = 1;
+		
+		sprite->center_x = sprite->width/2;
+		sprite->center_y = sprite->height/2;
+		
+		sprite->blend_mode = BLEND_ALPHA;
 						
 		str_set(is.key_str, namebuf);
 		hashmap_ins(is.sprites, is.key_str, &sprite);
@@ -127,6 +140,12 @@ int blit_load_spritesheet_split(char *texname, char *mapname)
 		sprite->r = 1;
 		sprite->g = 1;
 		sprite->b = 1;
+		sprite->alpha = 1;
+		
+		sprite->center_x = sprite->width/2;
+		sprite->center_y = sprite->height/2;
+		
+		sprite->blend_mode = BLEND_ALPHA;
 						
 		str_set(is.key_str, namebuf);
 		hashmap_ins(is.sprites, is.key_str, &sprite);
@@ -160,18 +179,19 @@ void blit_sprite(Sprite *spr, int x, int y)
 void blit_sprite_scaled(Sprite *spr, int x, int y, float s)
 {		
 	texture_bind(spr->texture);	
+	blit_set_blend_mode(spr->blend_mode);
 	
 	/* implementation is poor, but fast enough */
 	glBegin(GL_QUADS);	
-	glColor3f(spr->r, spr->g, spr->b);
+	glColor4f(spr->r, spr->g, spr->b, spr->alpha);
 	glTexCoord2f(spr->u, spr->v);					
-	glVertex2f(x, y);
+	glVertex2f(x-spr->center_x*s, y-spr->center_y*s);
 	glTexCoord2f(spr->u, spr->v + spr->h );		
-	glVertex2f(x, y + s * spr->height);
+	glVertex2f(x-spr->center_x*s, y-spr->center_y*s + s*spr->height);
 	glTexCoord2f(spr->u + spr->w, spr->v + spr->h);		
-	glVertex2f(x + s * spr->width, y + s * spr->height);
+	glVertex2f(x-spr->center_x*s + s*spr->width, y-spr->center_y*s + s*spr->height);
 	glTexCoord2f(spr->u + spr->w, spr->v);
-	glVertex2f(x + s * spr->width, y);
+	glVertex2f(x-spr->center_x*s + s*spr->width, y-spr->center_y*s);
 	glEnd();	
 }
 
@@ -188,4 +208,22 @@ void blit_line(int x0, int y0, int x1, int y1, uint32_t color)
 	
 	glEnable(GL_TEXTURE_2D);
 }
+
+
+//-----------------------------------------------------------------------------
+void blit_set_blend_mode(int blend_mode)
+{
+	if (is.blend_mode != blend_mode) {
+		switch(blend_mode) {
+			case BLEND_ALPHA:
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				break;
+			case BLEND_ADD:
+				glBlendFunc(GL_ONE, GL_ONE);
+				break;
+		}
+		is.blend_mode = blend_mode;
+	}
+}
+
 

@@ -32,6 +32,7 @@ void iso_snap_screen2world(float x, float y, float *ox, float *oy);
 void iso_blit_tile(Texture *tex, int x, int y);
 
 IsoLight *new_isolight(void);
+void free_isolight(IsoLight **light);
 void iso_illuminate(float x, float y, float *r, float *g, float *b);
 void iso_set_ambient(float r, float g, float b);
 
