@@ -59,13 +59,8 @@ void draw_tilemap(TileMap * map, Camera * cam, Sprite ** tileset)
 			float tileY = round(cam->y) + j + i / 2 + (i % 2) - cam->view;
 
 			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {
-				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
-				float scrX, scrY;
-				iso_world2screen(tileX, tileY, &scrX, &scrY);
-
-				blit_sprite(tile, round(scrX - iso_tile_width() / 2), round(scrY - iso_tile_height() / 2)
-				    );
-
+				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];				
+				iso_blit_tile(tile->texture, tileX, tileY);				
 			}
 		}
 }
@@ -118,6 +113,7 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
 
+#include <GL/gl.h>
 void client_loop(NetworkType * network)
 {
 	window_open(800, 600, 0, "Commander Luke");

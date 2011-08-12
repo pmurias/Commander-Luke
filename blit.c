@@ -150,13 +150,13 @@ void blit_sprite_scaled(Sprite *spr, int x, int y, float s)
 	texture_bind(spr->texture);	
 	
 	/* implementation is poor, but fast enough */
-	glBegin(GL_QUADS);
+	glBegin(GL_QUADS);	
 	glColor3f(1, 1, 1);
-	glTexCoord2f(spr->u, spr->v);
+	glTexCoord2f(spr->u, spr->v);					
 	glVertex2f(x, y);
-	glTexCoord2f(spr->u, spr->v + spr->h );
+	glTexCoord2f(spr->u, spr->v + spr->h );		
 	glVertex2f(x, y + s * spr->height);
-	glTexCoord2f(spr->u + spr->w, spr->v + spr->h);
+	glTexCoord2f(spr->u + spr->w, spr->v + spr->h);		
 	glVertex2f(x + s * spr->width, y + s * spr->height);
 	glTexCoord2f(spr->u + spr->w, spr->v);
 	glVertex2f(x + s * spr->width, y);

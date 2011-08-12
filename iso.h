@@ -19,6 +19,7 @@ int iso_tile_height(void);
 void iso_world2screen(float x, float y, float *ox, float *oy);
 void iso_screen2world(float x, float y, float *ox, float *oy);
 void iso_snap_screen2world(float x, float y, float *ox, float *oy);
+void iso_blit_tile(Texture *tex, int x, int y);
 
 IsoAnim *new_isoanim(void);
 IsoAnim *isoanim_build(char *namePrefix, int len, float delay);

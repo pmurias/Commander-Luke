@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <GL/gl.h>
 
 #include "hashmap.h"
 #include "str.h"
@@ -87,8 +88,8 @@ void iso_world2screen(float x, float y, float *ox, float *oy)
 {
 	x-= is.cam_x;
 	y-= is.cam_y;
-	*ox = (y - x) * is.tile_width/2 + window_width()/2;
-	*oy = (x + y) * is.tile_height/2 + window_height()/2;
+	*ox = round((y - x) * is.tile_width/2 + window_width()/2);
+	*oy = round((x + y) * is.tile_height/2 + window_height()/2);
 }
 
 //-----------------------------------------------------------------------------
@@ -103,6 +104,30 @@ void iso_snap_screen2world(float x, float y, float *ox, float *oy)
 {
 	*ox = round((y-window_height()/2) / is.tile_height - (x-window_width()/2) / is.tile_width + is.cam_x);
 	*oy = round((x-window_width()/2) / is.tile_width + (y-window_height()/2) / is.tile_height + is.cam_y);
+}
+
+//-----------------------------------------------------------------------------
+void iso_blit_tile(Texture *tex, int x, int y)
+{
+	float scrX, scrY;
+	iso_world2screen(x, y, &scrX, &scrY);	
+	texture_bind(tex);
+	
+	float light = 1.0/ (pow(x - is.cam_x, 2)+pow(y - is.cam_y, 2));
+	
+	glBegin(GL_QUADS);
+	
+	glColor3f(light,light,light);
+	glTexCoord2f(0, 0.5);
+	glVertex2f(scrX - 80, scrY);
+	glTexCoord2f(0.5, 0);
+	glVertex2f(scrX, scrY - 40);
+	glTexCoord2f(1, 0.5);
+	glVertex2f(scrX + 80, scrY);
+	glTexCoord2f(0.5, 1);
+	glVertex2f(scrX, scrY + 40);
+	
+	glEnd();
 }
 
 //-----------------------------------------------------------------------------
