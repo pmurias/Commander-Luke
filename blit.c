@@ -113,7 +113,7 @@ int blit_load_spritesheet_split(char *texname, char *mapname)
 		Sprite *sprite = malloc(sizeof(Sprite));
 		fscanf(fp, "%s = %f %f %d %d ", 
 			namebuf, 
-			&sprite->u, &sprite->v, 
+			&sprite->u, &sprite->v,
 			&sprite->width, &sprite->height);
 		
 		Texture *tex = texture_from_image_part(&img, sprite->u, sprite->v, sprite->width, sprite->height);
