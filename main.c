@@ -20,6 +20,7 @@
 #include "camera.h"
 #include "critter.h"
 #include "critters/human.h"
+#include "critters/blurred.h"
 
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
@@ -77,6 +78,7 @@ void usage()
 Engine *engine_init()
 {
 	human_init_vtable();
+	blurred_init_vtable();
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -98,6 +100,7 @@ void load_assets()
 	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
 
 	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
+	blit_load_spritesheet("./data/blurred.png", "./data/blurred.txt");
 
 	font_load("./data/font/jura.png", "./data/font/jura.fnt");
 	font_load("./data/font/ubuntu.png", "./data/font/ubuntu.fnt");
@@ -123,7 +126,7 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_human(50, 50);
+		cri[i] = new_blurred(50, 50);
 	}
 
 	float time_step = 1.0 / 30.0;

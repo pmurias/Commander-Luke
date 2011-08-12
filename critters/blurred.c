@@ -4,6 +4,7 @@
 
 #include "iso.h"
 #include "critter.h"
+#include "rand.h"
 
 #define CRI_IDLE 0
 #define CRI_RUNNING 1
@@ -12,34 +13,30 @@ typedef struct {
 	CRITTER_BASE;
         float x;
 	float y;
-
-	float velocity;
-
-	float face_x;
-	float face_y;
-
-	float anim_time;
-
+        float face_x;
+        float face_y;
 	int state;
-
+        int i;
 	float move_x;
 	float move_y;
-} Human;
+	float next_change;
+        float velocity;
+} Blurred;
 
-//-----------------------------------------------------------------------------
 static void tick(Critter * c)
 {
-	Human *cri = (Human *) c;
+	Blurred *cri = (Blurred *) c;
 	cri->x += cri->face_x * cri->velocity;
 	cri->y += cri->face_y * cri->velocity;
-	cri->anim_time += 1.0 / 30.0f;
 
 	if (cri->state == CRI_RUNNING) {
-		cri->velocity = 0.12;
+                if (cri->velocity <= 0.12) {
+                  cri->velocity += 0.001;
+                }
 		cri->face_x = cri->move_x - cri->x;
 		cri->face_y = cri->move_y - cri->y;
 		float len = sqrt(cri->face_x * cri->face_x + cri->face_y * cri->face_y);
-		if (len < 0.12) {
+		if (len < 0.1) {
 			cri->state = CRI_IDLE;
 		}
 		cri->face_x /= len;
@@ -50,33 +47,37 @@ static void tick(Critter * c)
 	}
 }
 
-//-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
 {
-	Human *cri = (Human *) c;
+	Blurred *cri = (Blurred *) c;
 	float wx, wy;
 	iso_world2screen(cri->x, cri->y, &wx, &wy);
-	IsoAnim *anim = NULL;
-	if (cri->state == CRI_IDLE) {
-		anim = isoanim_get("Nolty.Idle");
-	} else if (cri->state == CRI_RUNNING) {
-		anim = isoanim_get("Nolty.Running");
-	}
 
-	wx -= isoanim_width(anim) / 2;
-	wy -= isoanim_height(anim) - isoanim_width(anim) / 4;
-	isoanim_blit_frame(anim, wx, wy, cri->anim_time, cri->face_x, cri->face_y);	
+	while (time_delta >= cri->next_change) {
+		time_delta -= cri->next_change;
+                
+		cri->next_change = (cri->velocity ? 0.15 : 0.3) + (rand_rand() % 3) * 0.05;
+		cri->i = (cri->i + 1) % 2;
+	}
+	cri->next_change -= time_delta;
+
+	Sprite *s;
+	if (cri->i) {
+		s = blit_get_sprite("Blurred_001");
+	} else {
+		s = blit_get_sprite("Blurred_002");
+	}
+	blit_sprite(s, wx-50, wy-50);
+
 }
 
-//-----------------------------------------------------------------------------
 static void think(Critter * critter)
 {
 }
 
-//-----------------------------------------------------------------------------
 static void order(Critter * c, Netcmd * command)
 {
-	Human *cri = (Human *) c;
+	Blurred *cri = (Blurred *) c;
 	switch (command->header.type) {
 	case NETCMD_MOVECRITTER:{
 			Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;
@@ -88,17 +89,15 @@ static void order(Critter * c, Netcmd * command)
 	}
 }
 
-//-----------------------------------------------------------------------------
 static void get_viewpoint(Critter * c, float *x, float *y)
 {
-	Human *cri = (Human *) c;
+	Blurred *cri = (Blurred *) c;
 	*x = cri->x;
 	*y = cri->y;
 }
 
-//-----------------------------------------------------------------------------
 static CritterVTable *vtable;
-void human_init_vtable()
+void blurred_init_vtable()
 {
 	vtable = malloc(sizeof(CritterVTable));
 	vtable->tick = tick;
@@ -108,17 +107,16 @@ void human_init_vtable()
 	vtable->get_viewpoint = get_viewpoint;
 }
 
-//-----------------------------------------------------------------------------
-Critter *new_human(float x, float y)
+Critter *new_blurred(float x, float y)
 {
-	Human *h = (Human *) malloc(sizeof(Human));
+	Blurred *h = (Blurred *) malloc(sizeof(Blurred));
 	h->vtable = vtable;
 	h->x = x;
 	h->y = y;
-	h->velocity = 0;
-	h->face_x = 0;
-	h->face_y = 1;
-	h->state = CRI_IDLE;
-	h->anim_time = 0;
+	h->move_x = x;
+	h->move_y = y;
+	h->i = 0;
+        h->next_change = 0;
+        h->velocity = 0;
 	return (Critter *) h;
 }
