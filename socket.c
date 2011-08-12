@@ -174,11 +174,23 @@ static void socket_non_block(Socket *socket)
 }
 
 //-----------------------------------------------------------------------------
+static void socket_quick_ack(Socket *socket)
+{
+	/* special boost only on linux */
+	#ifndef WIN32
+	int optval = 1;
+	setsockopt(socket->handle, IPPROTO_TCP, TCP_QUICKACK, (char *)&optval, sizeof(int));
+	#endif
+}
+
+//-----------------------------------------------------------------------------
 static void socket_no_delay(Socket *socket)
 {
 	int optval = 1;
 	setsockopt(socket->handle, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(int));
+	socket_quick_ack(socket);
 }
+
 
 //-----------------------------------------------------------------------------
 static void sockaddr_from_ip(SockAddr *addr, char *ip, int port)
@@ -269,6 +281,7 @@ void tcpclient_select(TcpClient *client)
 		if (FD_ISSET(client->socket->handle, &client->read_set)) {			
 			ZeroMemory(readBuffer, SOCK_BUFFER_LEN);
 			int num_bytes_read = recv(client->socket->handle, readBuffer, SOCK_BUFFER_LEN, 0);
+			socket_quick_ack(client->socket);
 			if (num_bytes_read == SOCKET_ERROR || num_bytes_read == 0) 
 			{
 				if (num_bytes_read != 0) {								
@@ -284,14 +297,14 @@ void tcpclient_select(TcpClient *client)
 				return;				
 			} else {
 				client->read_handler(client, readBuffer, num_bytes_read);
-			}
+			}			
 		}
 		
 		if (FD_ISSET(client->socket->handle, &client->write_set))
 		{
 			SocketBufferChunk *chunk = client->write_buffer.first_chunk;
-			int num_bytes_writen = send(client->socket->handle,
-			chunk->data, chunk->num_bytes, 0);
+			int num_bytes_writen = send(client->socket->handle, chunk->data, chunk->num_bytes, 0);
+			socket_quick_ack(client->socket);
 				
 			if (num_bytes_writen != chunk->num_bytes) {
 				printf("Socket error: didn't manage to send whole buffer.\n");
@@ -467,6 +480,7 @@ void tcpserver_select(TcpServer *server)
 			{
 				ZeroMemory(readBuffer, SOCK_BUFFER_LEN);
 				int num_bytes_read = recv(server->clients[i]->handle, readBuffer, SOCK_BUFFER_LEN, 0);
+				socket_quick_ack(server->clients[i]);
 				if (num_bytes_read == SOCKET_ERROR || num_bytes_read == 0) 
 				{
 					if (num_bytes_read != 0) {
@@ -487,8 +501,8 @@ void tcpserver_select(TcpServer *server)
 			if (FD_ISSET(server->clients[i]->handle, &server->write_set))
 			{
 				SocketBufferChunk *chunk = server->write_buffers[i].first_chunk;
-				int num_bytes_writen = send(server->clients[i]->handle,
-					chunk->data, chunk->num_bytes, 0);
+				int num_bytes_writen = send(server->clients[i]->handle, chunk->data, chunk->num_bytes, 0);
+				socket_quick_ack(server->clients[i]);
 				
 				if (num_bytes_writen != chunk->num_bytes) {
 					printf("Socket: didn't manage to send whole buffer.\n");

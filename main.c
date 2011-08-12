@@ -26,6 +26,8 @@
 
 #define MAX_CLIENTS 20
 Critter *cri[MAX_CLIENTS];
+IsoLight *lights[MAX_CLIENTS];
+int active[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -126,9 +128,22 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_blurred(50, 50);
+		cri[i] = new_human(50, 50);
+		lights[i] = new_isolight();
+		lights[i]->r = 1;
+		lights[i]->g = 0.5;
+		lights[i]->b = 0.1;
+		lights[i]->range = 2;
 	}
-
+	
+	IsoLight *light = new_isolight();
+	light->r = 1;
+	light->g = 1;
+	light->b = 1;
+	light->x = 50;
+	light->y = 50;
+	light->range = 4;
+	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
 	int running = 1;
@@ -162,6 +177,7 @@ void client_loop(NetworkType * network)
 					}
 				case NETCMD_MOVECRITTER:{
 						Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;
+						active[move->sender] = 1;
 						cri[move->sender]->vtable->order(cri[move->sender], command);
 						break;
 					}
@@ -186,6 +202,9 @@ void client_loop(NetworkType * network)
 
 		for (int i = 0; i < MAX_CLIENTS; i++) {
 			cri[i]->vtable->draw(cri[i], window_frame_time());
+			if (active[i]) { 
+				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
+			}
 		}
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));

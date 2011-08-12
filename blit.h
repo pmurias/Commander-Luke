@@ -10,6 +10,10 @@ typedef struct
 	float v;
 	float w;
 	float h;
+	
+	float r;
+	float g;
+	float b;
 	int width;
 	int height;
 	Texture *texture;

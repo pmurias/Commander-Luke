@@ -53,19 +53,15 @@ static void tick(Critter * c)
 //-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
 {
-	Human *cri = (Human *) c;
-	float wx, wy;
-	iso_world2screen(cri->x, cri->y, &wx, &wy);
+	Human *cri = (Human *) c;	
 	IsoAnim *anim = NULL;
 	if (cri->state == CRI_IDLE) {
 		anim = isoanim_get("Nolty.Idle");
 	} else if (cri->state == CRI_RUNNING) {
 		anim = isoanim_get("Nolty.Running");
 	}
-
-	wx -= isoanim_width(anim) / 2;
-	wy -= isoanim_height(anim) - isoanim_width(anim) / 4;
-	isoanim_blit_frame(anim, wx, wy, cri->anim_time, cri->face_x, cri->face_y);	
+		
+	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);	
 }
 
 //-----------------------------------------------------------------------------

@@ -37,6 +37,10 @@ Sprite *blit_load_sprite(char *texname)
 	sprite->w = 1;
 	sprite->h = 1;
 	
+	sprite->r = 1;
+	sprite->g = 1;
+	sprite->b = 1;
+	
 	str_set(is.key_str, texname);
 	hashmap_ins(is.sprites, is.key_str, &sprite);
 	
@@ -72,6 +76,10 @@ int blit_load_spritesheet(char *texname, char *mapname)
 		
 		sprite->w = (float)sprite->width / tex->width;
 		sprite->h = (float)sprite->height / tex->height;
+		
+		sprite->r = 1;
+		sprite->g = 1;
+		sprite->b = 1;
 						
 		str_set(is.key_str, namebuf);
 		hashmap_ins(is.sprites, is.key_str, &sprite);
@@ -115,6 +123,10 @@ int blit_load_spritesheet_split(char *texname, char *mapname)
 		sprite->v = 0;		
 		sprite->w = 1;
 		sprite->h = 1;
+		
+		sprite->r = 1;
+		sprite->g = 1;
+		sprite->b = 1;
 						
 		str_set(is.key_str, namebuf);
 		hashmap_ins(is.sprites, is.key_str, &sprite);
@@ -151,7 +163,7 @@ void blit_sprite_scaled(Sprite *spr, int x, int y, float s)
 	
 	/* implementation is poor, but fast enough */
 	glBegin(GL_QUADS);	
-	glColor3f(1, 1, 1);
+	glColor3f(spr->r, spr->g, spr->b);
 	glTexCoord2f(spr->u, spr->v);					
 	glVertex2f(x, y);
 	glTexCoord2f(spr->u, spr->v + spr->h );		

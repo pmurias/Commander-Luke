@@ -9,6 +9,8 @@
 #include "window.h"
 #include "iso.h"
 
+#define MAX_LIGHTS 64
+
 typedef struct InternalState {
 	float dir_table[ISODIRECTIONS][2];
 	Str *key_str;
@@ -19,6 +21,11 @@ typedef struct InternalState {
 	
 	float cam_x;
 	float cam_y;
+	
+	float ambient_r;
+	float ambient_g;
+	float ambient_b;
+	IsoLight *lights[MAX_LIGHTS];
 } InternalState;
 static InternalState is;
 
@@ -37,7 +44,7 @@ void iso_startup(int tilew, int tileh)
 	is.tile_width = tilew;
 	is.tile_height = tileh;
 	is.cam_x = 0;
-	is.cam_y = 0;
+	is.cam_y = 0;	
 }
 
 //-----------------------------------------------------------------------------
@@ -109,25 +116,73 @@ void iso_snap_screen2world(float x, float y, float *ox, float *oy)
 //-----------------------------------------------------------------------------
 void iso_blit_tile(Texture *tex, int x, int y)
 {
-	float scrX, scrY;
-	iso_world2screen(x, y, &scrX, &scrY);	
+	float sx, sy;
+	iso_world2screen(x, y, &sx, &sy);	
 	texture_bind(tex);
 	
-	float light = 1.0/ (pow(x - is.cam_x, 2)+pow(y - is.cam_y, 2));
+	float r, g, b;
 	
 	glBegin(GL_QUADS);
 	
-	glColor3f(light,light,light);
+	iso_illuminate(x+0.5, y-0.5, &r, &g, &b);
+	glColor3f(r, g, b);
 	glTexCoord2f(0, 0.5);
-	glVertex2f(scrX - 80, scrY);
+	glVertex2f(sx - 80, sy);
+	
+	iso_illuminate(x-0.5, y-0.5, &r, &g, &b);
+	glColor3f(r, g, b);
 	glTexCoord2f(0.5, 0);
-	glVertex2f(scrX, scrY - 40);
+	glVertex2f(sx, sy - 40);
+	
+	iso_illuminate(x-0.5, y+0.5, &r, &g, &b);
+	glColor3f(r, g, b);
 	glTexCoord2f(1, 0.5);
-	glVertex2f(scrX + 80, scrY);
+	glVertex2f(sx + 80, sy);
+	
+	iso_illuminate(x+0.5, y+0.5, &r, &g, &b);
+	glColor3f(r, g, b);
 	glTexCoord2f(0.5, 1);
-	glVertex2f(scrX, scrY + 40);
+	glVertex2f(sx, sy + 40);
 	
 	glEnd();
+}
+
+//-----------------------------------------------------------------------------
+IsoLight *new_isolight(void)
+{
+	for (int i =0; i<MAX_LIGHTS; i++) {
+		if (is.lights[i] == NULL) {
+			is.lights[i] = malloc(sizeof(IsoLight));
+			return is.lights[i];
+		}
+	}	
+	return is.lights[0];
+}
+
+//-----------------------------------------------------------------------------
+void iso_illuminate(float x, float y, float *r, float *g, float *b)
+{
+	*r = is.ambient_r;
+	*g = is.ambient_g;
+	*b = is.ambient_b;
+	float power = 0;
+	for (int i = 0; i<MAX_LIGHTS; i++) {
+		if (is.lights[i] != NULL) {
+			power = pow(is.lights[i]->range,2) * 0.1/(pow(x - is.lights[i]->x, 2)+pow(y - is.lights[i]->y, 2));
+			power = (power < 1 ? power : 1);
+			*r += is.lights[i]->r * power;
+			*g += is.lights[i]->g * power;
+			*b += is.lights[i]->b * power;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+void iso_set_ambient(float r, float g, float b)
+{
+	is.ambient_r = r;
+	is.ambient_g = g;
+	is.ambient_b = b;
 }
 
 //-----------------------------------------------------------------------------
@@ -166,10 +221,17 @@ IsoAnim *isoanim_get(char *name)
 }
 
 //-----------------------------------------------------------------------------
-void isoanim_blit_frame(IsoAnim *anim, int x, int y, float time, float dx, float dy)
+void isoanim_blit_frame(IsoAnim *anim, float x, float y, float time, float dx, float dy)
 {
+	float wx, wy;
+	iso_world2screen(x, y, &wx, &wy);
+	wx -= isoanim_width(anim) / 2;
+	wy -= isoanim_height(anim) - isoanim_width(anim) / 4;
+	
 	int dir = iso_get_dir(dx, dy);	
-	anim_blit_frame(anim->anims[dir], x, y, time);
+	Sprite *frame = anim_get_frame(anim->anims[dir], time);
+	iso_illuminate(x, y, &frame->r, &frame->g, &frame->b);
+	anim_blit_frame(anim->anims[dir], wx, wy, time);
 }
 
 //-----------------------------------------------------------------------------
@@ -183,3 +245,4 @@ int isoanim_height(IsoAnim *anim)
 {
 	return anim->anims[0]->height;
 }
+

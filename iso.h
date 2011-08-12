@@ -10,6 +10,16 @@ typedef struct
 	AnimData *anims[ISODIRECTIONS];	
 } IsoAnim;
 
+typedef struct
+{
+	float x;
+	float y;
+	float range;
+	float r;
+	float g;
+	float b;
+} IsoLight;
+
 void iso_startup(int tilew, int tileh);
 void iso_set_cam(float x, float y);
 int iso_get_dir(float x, float y);
@@ -21,10 +31,14 @@ void iso_screen2world(float x, float y, float *ox, float *oy);
 void iso_snap_screen2world(float x, float y, float *ox, float *oy);
 void iso_blit_tile(Texture *tex, int x, int y);
 
+IsoLight *new_isolight(void);
+void iso_illuminate(float x, float y, float *r, float *g, float *b);
+void iso_set_ambient(float r, float g, float b);
+
 IsoAnim *new_isoanim(void);
 IsoAnim *isoanim_build(char *namePrefix, int len, float delay);
 IsoAnim *isoanim_get(char *name);
-void isoanim_blit_frame(IsoAnim *anim, int x, int y, float time, float dx, float dy);
+void isoanim_blit_frame(IsoAnim *anim, float x, float y, float time, float dx, float dy);
 int isoanim_width(IsoAnim *anim);
 int isoanim_height(IsoAnim *anim);
 

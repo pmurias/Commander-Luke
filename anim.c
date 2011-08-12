@@ -42,9 +42,15 @@ void anim_add_frame_range(AnimData *anim, char *namePrefix, int start, int end)
 }
 
 //-----------------------------------------------------------------------------
+Sprite *anim_get_frame(AnimData *anim, float time)
+{
+	return anim->frames[(int)(round(time / anim->delay)) % anim->num_frames];
+}
+
+//-----------------------------------------------------------------------------
 void anim_blit_frame(AnimData *anim, int x, int y, float time)
 {	
-	blit_sprite(anim->frames[(int)(round(time / anim->delay)) % anim->num_frames], x, y);
+	blit_sprite(anim_get_frame(anim, time), x, y);
 }
 
 //-----------------------------------------------------------------------------
