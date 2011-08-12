@@ -65,7 +65,7 @@ int blit_load_spritesheet(char *texname, char *mapname)
 		
 	while (!feof(fp)) {			
 		Sprite *sprite = malloc(sizeof(Sprite));
-		fscanf(fp, "%s = %f %f %d %d", 
+		fscanf(fp, "%s = %f %f %d %d ", 
 			namebuf, 
 			&sprite->u, &sprite->v, 
 			&sprite->width, &sprite->height);
@@ -111,7 +111,7 @@ int blit_load_spritesheet_split(char *texname, char *mapname)
 		
 	while (!feof(fp)) {			
 		Sprite *sprite = malloc(sizeof(Sprite));
-		fscanf(fp, "%s = %f %f %d %d", 
+		fscanf(fp, "%s = %f %f %d %d ", 
 			namebuf, 
 			&sprite->u, &sprite->v, 
 			&sprite->width, &sprite->height);
