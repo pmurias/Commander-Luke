@@ -33,7 +33,8 @@ SOURCES+= \
 	
 # critters
 SOURCES+= \
-	critters/human.c
+	critters/human.c\
+	critters/blurred.c
 	
 OBJECTS=$(SOURCES:.c=.o)
 
