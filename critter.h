@@ -1,6 +1,7 @@
 #ifndef __CRITTER_H__
 #define __CRITTER_H__
 
+
 #include "commands.h"
 
 #define CRITTER_BASE \
@@ -19,6 +20,11 @@ struct CritterVTable {
   void (*tick)(Critter* critter); // The critter update it's state: walks, shoots etc.
   void (*order)(Critter* critter,Netcmd* command); // Orders the critter to execute command
   void (*get_viewpoint)(Critter* critter,float *x,float *y);
+  void (*damage)(Critter*,float hp);
 };
+
+//HACK
+#define MAX_CLIENTS 20
+extern Critter *cri[MAX_CLIENTS];
 
 #endif

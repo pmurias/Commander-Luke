@@ -24,12 +24,20 @@ typedef struct {
 
 	float move_x;
 	float move_y;
+
+	float hp;
 } Human;
 
 //-----------------------------------------------------------------------------
 static void tick(Critter * c)
 {
+
 	Human *cri = (Human *) c;
+
+	if (cri->hp <= 0) {
+		return;
+	}
+
 	cri->x += cri->face_x * cri->velocity;
 	cri->y += cri->face_y * cri->velocity;
 	cri->anim_time += 1.0 / 30.0f;
@@ -53,20 +61,35 @@ static void tick(Critter * c)
 //-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
 {
-	Human *cri = (Human *) c;	
+	Human *cri = (Human *) c;
 	IsoAnim *anim = NULL;
+	if (cri->hp <= 0) {
+		Sprite *s = blit_get_sprite("Blurred_001");
+		float wx, wy;
+		iso_world2screen(cri->x, cri->y, &wx, &wy);
+		blit_sprite(s, wx - 50, wy - 50);
+		return;
+		return;
+	}
 	if (cri->state == CRI_IDLE) {
 		anim = isoanim_get("Nolty.Idle");
 	} else if (cri->state == CRI_RUNNING) {
 		anim = isoanim_get("Nolty.Running");
 	}
-		
-	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);	
+
+	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);
 }
 
 //-----------------------------------------------------------------------------
 static void think(Critter * critter)
 {
+}
+
+//-----------------------------------------------------------------------------
+static void damage(Critter * c, float amount)
+{
+	Human *cri = (Human *) c;
+	cri->hp -= amount;
 }
 
 //-----------------------------------------------------------------------------
@@ -101,6 +124,7 @@ void human_init_vtable()
 	vtable->think = think;
 	vtable->order = order;
 	vtable->draw = draw;
+	vtable->damage = damage;
 	vtable->get_viewpoint = get_viewpoint;
 }
 
@@ -116,5 +140,6 @@ Critter *new_human(float x, float y)
 	h->face_y = 1;
 	h->state = CRI_IDLE;
 	h->anim_time = 0;
+	h->hp = 100;
 	return (Critter *) h;
 }
