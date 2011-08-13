@@ -143,6 +143,8 @@ void client_loop(NetworkType * network)
 		lights[i]->g = 0.5;
 		lights[i]->b = 0.1;
 		lights[i]->range = 2;
+                lights[i]->x = 50;
+                lights[i]->y = 50;
 	}
 	spells = new_ptrarray();
 	
