@@ -140,7 +140,7 @@ void hashmap_resize(HashMap *hm, uint32_t new_size)
 		if (oldKeys[i].len != 0) {
 			_hashmap_reloc(hm, &oldKeys[i], oldData + i*hm->elem_size);
 		}
-		str_free(&oldKeys[i]);
+		free(oldKeys[i].val);		
 	}
 
 	free(oldData);
