@@ -15,6 +15,7 @@ SOURCES= \
 	hashmap.c \
 	str.c \
 	queue.c \
+	array.c \
 	socket.c \
 	blit.c \
 	anim.c \
@@ -54,6 +55,8 @@ luke: $(OBJECTS)
 clean:
 	rm -rf $(OBJECTS) luke like.exe
 
-tests: tests/rand
+tests: tests/rand tests/ptrarray
 tests/rand: tests/rand.c rand.o
-	gcc -I. rand.o tests/rand.c -o tests/rand
+	gcc -I. rand.o tests/rand.c -o tests/rand	
+tests/ptrarray: tests/ptrarray.c array.o
+	gcc -I. array.o tests/ptrarray.c -o tests/ptrarray

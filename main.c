@@ -15,6 +15,7 @@
 #include "font.h"
 #include "iso.h"
 #include "rand.h"
+#include "array.h"
 
 #include "commands.h"
 #include "camera.h"
@@ -30,7 +31,7 @@
 Critter *cri[MAX_CLIENTS];
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
-Spell *spells[MAX_CLIENTS];
+Array *spells;
 
 typedef struct {
 	int width;
@@ -143,6 +144,7 @@ void client_loop(NetworkType * network)
 		lights[i]->b = 0.1;
 		lights[i]->range = 2;
 	}
+	spells = new_ptrarray();
 	
 	IsoLight *light = new_isolight();
 	light->r = 1;
@@ -202,9 +204,8 @@ void client_loop(NetworkType * network)
 					}
 				case NETCMD_SPAWNFLARE:{
 						Netcmd_SpawnFlare *sf = (Netcmd_SpawnFlare *) command;
-						if (!spells[sf->sender]) {
-							spells[sf->sender] = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
-						}
+						Spell *flare = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
+						ptrarray_add(spells, flare);
 						break;
 					}				
 				default:
@@ -214,9 +215,16 @@ void client_loop(NetworkType * network)
 			}
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
-				cri[i]->vtable->tick(cri[i]);
-				if (spells[i])  spells[i]->vtable->tick(&spells[i]);
-			}
+				cri[i]->vtable->tick(cri[i]);				
+			}			
+			for (int i = 0; i < spells->count; i++) {
+				Spell *spell = (Spell *)ptrarray(spells)[i];
+				spell->vtable->tick(&spell);
+				if (spell == NULL) {
+					ptrarray_remove(spells, i);
+					i--;				
+				}				
+			}			
 						
 
 			network->logic_tick(network->state);
@@ -234,10 +242,9 @@ void client_loop(NetworkType * network)
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
 			}			
 		}	
-		for (int i = 0; i < MAX_CLIENTS; i++) {
-			if (spells[i]) {
-				spells[i]->vtable->draw(spells[i], window_frame_time());
-			}
+		for (int i = 0; i < spells->count; i++) {
+			Spell *spell = (Spell *)ptrarray(spells)[i];
+			spell->vtable->draw(spell, window_frame_time());			
 		}
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));
