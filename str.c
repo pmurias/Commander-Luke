@@ -24,6 +24,7 @@ inline void str_init(Str *str)
 inline void str_free(Str *str)
 {
 	free(str->val);	
+        free(str);
 }
 
 //-----------------------------------------------------------------------------
