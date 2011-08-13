@@ -142,7 +142,9 @@ void client_loop(NetworkType * network)
 		lights[i]->r = 1;
 		lights[i]->g = 0.5;
 		lights[i]->b = 0.1;
-		lights[i]->range = 2;
+		lights[i]->range = 0;
+		lights[i]->x = 50;
+		lights[i]->y = 50;		
 	}
 	spells = new_ptrarray();
 	
@@ -240,7 +242,10 @@ void client_loop(NetworkType * network)
 			cri[i]->vtable->draw(cri[i], window_frame_time());
 			if (active[i]) { 
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
-			}			
+				lights[i]->range = 2;
+			} else {
+				lights[i]->range = 0;
+			}
 		}	
 		for (int i = 0; i < spells->count; i++) {
 			Spell *spell = (Spell *)ptrarray(spells)[i];
