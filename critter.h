@@ -21,6 +21,7 @@ struct CritterVTable {
   void (*order)(Critter* critter,Netcmd* command); // Orders the critter to execute command
   void (*get_viewpoint)(Critter* critter,float *x,float *y);
   void (*damage)(Critter*,float hp);
+  float (*get_hp)(Critter*);
 };
 
 //HACK

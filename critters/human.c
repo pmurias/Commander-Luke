@@ -116,6 +116,13 @@ static void get_viewpoint(Critter * c, float *x, float *y)
 }
 
 //-----------------------------------------------------------------------------
+float get_hp(Critter * c)
+{
+	Human *cri = (Human *) c;
+        return cri->hp;
+}
+
+//-----------------------------------------------------------------------------
 static CritterVTable *vtable;
 void human_init_vtable()
 {
@@ -126,6 +133,7 @@ void human_init_vtable()
 	vtable->draw = draw;
 	vtable->damage = damage;
 	vtable->get_viewpoint = get_viewpoint;
+	vtable->get_hp = get_hp;
 }
 
 //-----------------------------------------------------------------------------

@@ -185,10 +185,15 @@ void client_loop(NetworkType * network)
 				Netcmd_SpawnFlare cmd;
 				cmd.header.type = NETCMD_SPAWNFLARE;
 				cmd.sender = network->get_id(network->state);
+
 				Critter *player = cri[cmd.sender];
-				player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);																
-				iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
-				network->add_command(network->state, (Netcmd*)&cmd);
+                                float hp = player->vtable->get_hp(player);
+
+                                if (hp >= 1) {
+					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);																
+					iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
+                                	network->add_command(network->state, (Netcmd*)&cmd);
+                                }
 			}
 
 			Netcmd *command;
@@ -252,7 +257,10 @@ void client_loop(NetworkType * network)
 			spell->vtable->draw(spell, window_frame_time());			
 		}
 
-		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));
+		Critter *c = cri[network->get_id(network->state)];
+		int hp = c->vtable->get_hp(c);
+
+		font_print(font_get("Jura"), 10, 10, 1.0, "HP: %d\nFPS: %d", hp, (int)round(1.0 / window_frame_time()));
 
 		window_end_frame();
 	}
