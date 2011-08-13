@@ -86,6 +86,7 @@ Font *font_load(char *texfile, char *fntfile)
 		
 		glyph.sprite->center_x = 0;
 		glyph.sprite->center_y = 0;
+		glyph.sprite->angle = 0;
 		
 		glyph.sprite->blend_mode = BLEND_ALPHA;
 		

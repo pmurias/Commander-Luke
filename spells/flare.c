@@ -21,6 +21,7 @@ typedef struct {
 
 	float scale;
 	float fade;
+	float angle;
 	int exploded;
 	IsoLight *light;
 } Flare;
@@ -49,6 +50,7 @@ static void tick(Spell ** s)
 					cri[i]->vtable->damage(cri[i], 10);
 			}
 		}
+		spell->angle += 10;
 		spell->z = 0;
 		spell->scale *= 1.15;
 		spell->scale *= 1.05;
@@ -76,6 +78,7 @@ static void draw(Spell * s, float time_delta)
 
 	Sprite *flare = blit_get_sprite("./data/flare.png");
 	flare->r = flare->g = flare->b = spell->fade;
+	flare->angle = spell->angle;
 	blit_sprite_scaled(flare, wx, wy - spell->z, spell->scale);
 
 	if (spell->light) {
@@ -116,6 +119,7 @@ Spell *new_flare(float x, float y, float mx, float my)
 	spell->dist = sqrt(pow(x - mx, 2) + pow(y - my, 2));
 	spell->scale = 0.2;
 	spell->fade = 200;
+	spell->angle = rand()%1000;
 	spell->light = new_isolight();
 	spell->light->x = x;
 	spell->light->y = y;

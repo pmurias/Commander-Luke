@@ -45,6 +45,7 @@ Sprite *blit_load_sprite(char *texname)
 	
 	sprite->center_x = sprite->width/2;
 	sprite->center_y = sprite->height/2;
+	sprite->angle = 0;
 	
 	sprite->blend_mode = BLEND_ALPHA;
 	
@@ -91,6 +92,7 @@ int blit_load_spritesheet(char *texname, char *mapname)
 		
 		sprite->center_x = sprite->width/2;
 		sprite->center_y = sprite->height/2;
+		sprite->angle = 0;
 		
 		sprite->blend_mode = BLEND_ALPHA;
 						
@@ -143,7 +145,8 @@ int blit_load_spritesheet_split(char *texname, char *mapname)
 		sprite->alpha = 1;
 		
 		sprite->center_x = sprite->width/2;
-		sprite->center_y = sprite->height/2;
+		sprite->center_y = sprite->height/2;		
+		sprite->angle = 0;
 		
 		sprite->blend_mode = BLEND_ALPHA;
 						
@@ -182,17 +185,24 @@ void blit_sprite_scaled(Sprite *spr, int x, int y, float s)
 	blit_set_blend_mode(spr->blend_mode);
 	
 	/* implementation is poor, but fast enough */
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glTranslatef(x, y, 0);
+	glRotatef(spr->angle, 0, 0, 1);
+	
 	glBegin(GL_QUADS);	
 	glColor4f(spr->r, spr->g, spr->b, spr->alpha);
 	glTexCoord2f(spr->u, spr->v);					
-	glVertex2f(x-spr->center_x*s, y-spr->center_y*s);
+	glVertex2f(-spr->center_x*s, -spr->center_y*s);
 	glTexCoord2f(spr->u, spr->v + spr->h );		
-	glVertex2f(x-spr->center_x*s, y-spr->center_y*s + s*spr->height);
+	glVertex2f(-spr->center_x*s, -spr->center_y*s + s*spr->height);
 	glTexCoord2f(spr->u + spr->w, spr->v + spr->h);		
-	glVertex2f(x-spr->center_x*s + s*spr->width, y-spr->center_y*s + s*spr->height);
+	glVertex2f(-spr->center_x*s + s*spr->width, -spr->center_y*s + s*spr->height);
 	glTexCoord2f(spr->u + spr->w, spr->v);
-	glVertex2f(x-spr->center_x*s + s*spr->width, y-spr->center_y*s);
+	glVertex2f(-spr->center_x*s + s*spr->width, -spr->center_y*s);
 	glEnd();	
+	
+	glPopMatrix();
 }
 
 //-----------------------------------------------------------------------------

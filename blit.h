@@ -18,6 +18,7 @@ typedef struct
 	int height;	
 	int center_x;
 	int center_y;	
+	float angle;
 	int blend_mode;	
 	Texture *texture;
 } Sprite;
