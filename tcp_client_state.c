@@ -42,20 +42,20 @@ static void logic_tick(void *d)
 
 	static char packet[8196];
 	uint32_t packet_size = 4;	
-	Netcmd *cmd;	
+	Netcmd *cmd;
 		
-	while ((cmd = queue_first(state->out)) != NULL) {		
+	while ((cmd = queue_first(state->out)) != NULL) {
 		memcpy(packet + packet_size, cmd, command_size(cmd));
-		packet_size += command_size(cmd);					
+		packet_size += command_size(cmd);	
 		queue_pop(state->out);
 	}
 		
 	uint32_t data_size = packet_size - sizeof(uint32_t);
-	memcpy(packet, &data_size, sizeof(uint32_t));	
+	memcpy(packet, &data_size, sizeof(uint32_t));
 		
 	tcpclient_write(state->socket, packet, packet_size);
-	state->waiting = 1;	
-        state->wait_start = glfwGetTime();
+	state->waiting = 1;
+	state->wait_start = glfwGetTime();
 }
 
 //-----------------------------------------------------------------------------

@@ -127,22 +127,22 @@ void iso_blit_tile(Texture *tex, int x, int y)
 	iso_illuminate(x+0.5, y-0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0, 0.5);
-	glVertex2f(sx - 80, sy);
+	glVertex2f(sx - is.tile_width/2, sy);
 	
 	iso_illuminate(x-0.5, y-0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0.5, 0);
-	glVertex2f(sx, sy - 40);
+	glVertex2f(sx, sy - is.tile_height/2);
 	
 	iso_illuminate(x-0.5, y+0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(1, 0.5);
-	glVertex2f(sx + 80, sy);
+	glVertex2f(sx + is.tile_width/2, sy);
 	
 	iso_illuminate(x+0.5, y+0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0.5, 1);
-	glVertex2f(sx, sy + 40);
+	glVertex2f(sx, sy + is.tile_height/2);
 	
 	glEnd();
 }
@@ -234,15 +234,24 @@ IsoAnim *isoanim_get(char *name)
 }
 
 //-----------------------------------------------------------------------------
-void isoanim_blit_frame(IsoAnim *anim, float x, float y, float time, float dx, float dy)
+void isoanim_blit_frame(IsoAnim *anim, float x, float y, float time, float dirx, float diry)
 {
 	float wx, wy;
 	iso_world2screen(x, y, &wx, &wy);
 	
-	int dir = iso_get_dir(dx, dy);	
+	int dir = iso_get_dir(dirx, diry);	
 	Sprite *frame = anim_get_frame(anim->anims[dir], time);
 	iso_illuminate(x, y, &frame->r, &frame->g, &frame->b);
 	anim_blit_frame(anim->anims[dir], wx, wy, time);
+}
+
+//-----------------------------------------------------------------------------
+void isoanim_set_center(IsoAnim *anim, int cen_x, int inv_cen_y)
+{
+	for (int i=0; i<ISODIRECTIONS; i++) {
+		Sprite *frame = anim->anims[i]->frames[0];
+		anim_set_center(anim->anims[i], cen_x, frame->height - inv_cen_y);
+	}
 }
 
 //-----------------------------------------------------------------------------

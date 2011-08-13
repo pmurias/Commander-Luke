@@ -115,7 +115,9 @@ void load_assets()
 
 	printf("Building animations...");
 	isoanim_build("Nolty.Idle", 10, 0.3);
+	isoanim_set_center(isoanim_get("Nolty.Idle"), 64, 20);
 	isoanim_build("Nolty.Running", 15, 0.03);
+	isoanim_set_center(isoanim_get("Nolty.Running"), 64, 20);
 	printf("OK\n");
 }
 
@@ -150,7 +152,7 @@ void client_loop(NetworkType * network)
 	light->y = 50;
 	light->range = 4;
 	
-	iso_set_ambient(0.1, 0.1, 0.1);	
+	iso_set_ambient(0.05, 0.05, 0.05);	
 	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
@@ -230,11 +232,13 @@ void client_loop(NetworkType * network)
 			cri[i]->vtable->draw(cri[i], window_frame_time());
 			if (active[i]) { 
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
-			}
+			}			
+		}	
+		for (int i = 0; i < MAX_CLIENTS; i++) {
 			if (spells[i]) {
 				spells[i]->vtable->draw(spells[i], window_frame_time());
 			}
-		}		
+		}
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "Hello World!\nFPS: %d", (int)round(1.0 / window_frame_time()));
 

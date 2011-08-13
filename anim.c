@@ -54,9 +54,19 @@ void anim_blit_frame(AnimData *anim, int x, int y, float time)
 }
 
 //-----------------------------------------------------------------------------
+void anim_set_center(AnimData *anim, int cen_x, int cen_y)
+{
+	for (int i=0; i<anim->num_frames; i++) {
+		anim->frames[i]->center_x = cen_x; 
+		anim->frames[i]->center_y = cen_y;
+	}
+}
+
+//-----------------------------------------------------------------------------
 void anim_free(AnimData **anim)
 {
 	free((*anim)->frames);
 	free(*anim);
 	*anim = NULL;
 }
+
