@@ -36,8 +36,8 @@ void *array_get(Array *arr, int i)
 //-----------------------------------------------------------------------------
 void array_remove(Array *arr, int i)
 {
-	if (i!= arr->count-1) {
-		memcpy(arr->data +i*arr->elem_size, arr->data + (i+1)*arr->elem_size, (arr->count-1)*arr->elem_size);
+	if (i!= arr->count-1) {		
+		memcpy(arr->data +i*arr->elem_size, arr->data + (i+1)*arr->elem_size, (arr->count-i-1)*arr->elem_size);
 	}
 	arr->count--;
 	if (arr->count < arr->size/4 && arr->size/2 > MIN_ARRAY_SIZE) {
@@ -58,6 +58,19 @@ void array_clear(Array *arr)
 void *ptrarray_get(Array *arr, int i)
 {
 	return *((void **)array_get(arr, i));
+}
+
+//-----------------------------------------------------------------------------
+int ptrarray_free(Array *arr, void *ptr)
+{
+	for (int i=0; i<arr->count; i++) {
+		if (ptrarray(arr)[i] == ptr) {
+			free(ptr);
+			array_remove(arr, i);
+			return 1;			
+		}
+	}
+	return 0;
 }
 
 //-----------------------------------------------------------------------------

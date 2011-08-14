@@ -18,15 +18,22 @@ int main(void)
 		for (i = 0; i < 100; i++) {
 			Bulk *bulk  = malloc(sizeof(Bulk));
 			ptrarray_add(arr, bulk);
-			bulk->data[0] = i;
+			bulk->data[50] = i;
 		}
 		
-		for (i = 0; i < 100; i++) {
+		for (i = 0; i < 50; i++) {
+			Bulk *bulk = ptrarray(arr)[50];
+			printf("%d", bulk->data[50]);
+			free(bulk);
+			ptrarray_remove(arr, 50);			
+		}		
+		for (i = 0; i < 50; i++) {
 			Bulk *bulk = ptrarray(arr)[0];
-			printf("%d", bulk->data[0]);
+			printf("%d", bulk->data[50]);
 			free(bulk);
 			ptrarray_remove(arr, 0);			
 		}		
+		printf("\n");
 	}
 	return 0;
 }

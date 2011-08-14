@@ -21,6 +21,7 @@ void array_clear(Array *arr);
 #define ptrarray_remove array_remove
 #define ptrarray_clear array_clear
 void *ptrarray_get(Array *arr, int i);
+int ptrarray_free(Array *arr, void *ptr);
 void **ptrarray(Array *arr);
 
 #endif // __ARRAY_H__

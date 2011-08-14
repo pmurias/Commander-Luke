@@ -32,6 +32,7 @@ Critter *cri[MAX_CLIENTS];
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
 Array *spells;
+Str *logins[MAX_CLIENTS];
 
 typedef struct {
 	int width;
@@ -187,13 +188,13 @@ void client_loop(NetworkType * network)
 				cmd.sender = network->get_id(network->state);
 
 				Critter *player = cri[cmd.sender];
-                                float hp = player->vtable->get_hp(player);
+				float hp = player->vtable->get_hp(player);
 
-                                if (hp >= 1) {
-					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);																
+				if (hp >= 1) {
+					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);									
 					iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
-                                	network->add_command(network->state, (Netcmd*)&cmd);
-                                }
+					network->add_command(network->state, (Netcmd*)&cmd);
+				}
 			}
 
 			Netcmd *command;
@@ -229,32 +230,31 @@ void client_loop(NetworkType * network)
 				spell->vtable->tick(&spell);
 				if (spell == NULL) {
 					ptrarray_remove(spells, i);
-					i--;				
+					i--;
 				}				
-			}			
-						
+			}									
 
-			network->logic_tick(network->state);
-			Critter *c = cri[network->get_id(network->state)];
-			c->vtable->get_viewpoint(c, &camera->x, &camera->y);
+			network->logic_tick(network->state);						
+			Critter *c = cri[network->get_id(network->state)];			
+			c->vtable->get_viewpoint(c, &camera->x, &camera->y);			
 
 			window_poll_events();
-		}
+		}		
 
 		draw_tilemap(engine->map, camera, g_tileset);
 
 		for (int i = 0; i < MAX_CLIENTS; i++) {
 			cri[i]->vtable->draw(cri[i], window_frame_time());
-			if (active[i]) { 
+			if (active[i]) {
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
 				lights[i]->range = 2;
 			} else {
 				lights[i]->range = 0;
 			}
-		}	
+		}
 		for (int i = 0; i < spells->count; i++) {
 			Spell *spell = (Spell *)ptrarray(spells)[i];
-			spell->vtable->draw(spell, window_frame_time());			
+			spell->vtable->draw(spell, window_frame_time());
 		}
 
 		Critter *c = cri[network->get_id(network->state)];
@@ -274,7 +274,7 @@ void client_loop(NetworkType * network)
 void server_loop(NetworkType * network)
 {
 	while (1) {
-		network->tick(network->state);
+		network->tick(network->state);		
 	}
 }
 

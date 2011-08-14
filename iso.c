@@ -6,10 +6,9 @@
 
 #include "hashmap.h"
 #include "str.h"
+#include "array.h"
 #include "window.h"
 #include "iso.h"
-
-#define MAX_LIGHTS 64
 
 typedef struct InternalState {
 	float dir_table[ISODIRECTIONS][2];
@@ -25,7 +24,7 @@ typedef struct InternalState {
 	float ambient_r;
 	float ambient_g;
 	float ambient_b;
-	IsoLight *lights[MAX_LIGHTS];
+	PtrArray *lights;	
 } InternalState;
 static InternalState is;
 
@@ -40,6 +39,7 @@ void iso_startup(int tilew, int tileh)
 	}
 	is.isoanim_map = new_hashmap(sizeof(IsoAnim*));
 	is.key_str = new_str();
+	is.lights = new_ptrarray();
 	
 	is.tile_width = tilew;
 	is.tile_height = tileh;
@@ -124,20 +124,87 @@ void iso_blit_tile(Texture *tex, int x, int y)
 	
 	glBegin(GL_QUADS);
 	
+	
 	iso_illuminate(x+0.5, y-0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0, 0.5);
 	glVertex2f(sx - is.tile_width/2, sy);
+	
+	iso_illuminate(x, y-0.5, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.25, 0.25);
+	glVertex2f(sx - is.tile_width/4, sy - is.tile_height/4);
+	
+	iso_illuminate(x, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.5, 0.5);
+	glVertex2f(sx, sy);
+	
+	iso_illuminate(x+0.5, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.25, 0.75);
+	glVertex2f(sx - is.tile_width/4, sy + is.tile_height/4);
+	
+	//----------
+	
+	iso_illuminate(x, y-0.5, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.25, 0.25);
+	glVertex2f(sx - is.tile_width/4, sy - is.tile_height/4);
 	
 	iso_illuminate(x-0.5, y-0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0.5, 0);
 	glVertex2f(sx, sy - is.tile_height/2);
 	
+	iso_illuminate(x-0.5, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.75, 0.25);
+	glVertex2f(sx + is.tile_width/4, sy - is.tile_height/4);
+	
+	iso_illuminate(x, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.5, 0.5);
+	glVertex2f(sx, sy);
+	
+	//----------
+	
+	iso_illuminate(x, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.5, 0.5);
+	glVertex2f(sx, sy);
+	
+	iso_illuminate(x-0.5, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.75, 0.25);
+	glVertex2f(sx + is.tile_width/4, sy - is.tile_height/4);	
+	
 	iso_illuminate(x-0.5, y+0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(1, 0.5);
 	glVertex2f(sx + is.tile_width/2, sy);
+	
+	iso_illuminate(x, y+0.5, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.75, 0.75);
+	glVertex2f(sx + is.tile_width/4, sy + is.tile_height/4);
+		
+	//----------
+	
+	iso_illuminate(x+0.5, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.25, 0.75);
+	glVertex2f(sx - is.tile_width/4, sy + is.tile_height/4);
+	
+	iso_illuminate(x, y, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.5, 0.5);
+	glVertex2f(sx, sy);
+	
+	iso_illuminate(x, y+0.5, &r, &g, &b);
+	glColor3f(r, g, b);
+	glTexCoord2f(0.75, 0.75);
+	glVertex2f(sx + is.tile_width/4, sy + is.tile_height/4);
 	
 	iso_illuminate(x+0.5, y+0.5, &r, &g, &b);
 	glColor3f(r, g, b);
@@ -150,26 +217,17 @@ void iso_blit_tile(Texture *tex, int x, int y)
 //-----------------------------------------------------------------------------
 IsoLight *new_isolight(void)
 {
-	for (int i =0; i<MAX_LIGHTS; i++) {
-		if (is.lights[i] == NULL) {
-			is.lights[i] = malloc(sizeof(IsoLight));
-			return is.lights[i];
-		}
-	}	
-	return is.lights[0];
+	IsoLight *li = malloc(sizeof(IsoLight));
+	ptrarray_add(is.lights, li);	
+	return li;
 }
 
 //-----------------------------------------------------------------------------
 void free_isolight(IsoLight **light)
-{
-	for (int i = 0; i<MAX_LIGHTS; i++) {
-		if (is.lights[i] == *light) {
-			free(*light);
-			*light = NULL;
-			is.lights[i] = NULL;
-			break;
-		}
-	}
+{		
+	if (ptrarray_free(is.lights, *light)) {
+		*light = NULL;
+	}	
 }
 
 //-----------------------------------------------------------------------------
@@ -179,14 +237,14 @@ void iso_illuminate(float x, float y, float *r, float *g, float *b)
 	*g = is.ambient_g;
 	*b = is.ambient_b;
 	float power = 0;
-	for (int i = 0; i<MAX_LIGHTS; i++) {
-		if (is.lights[i] != NULL) {
-			power = pow(is.lights[i]->range,2) * 0.1/(pow(x - is.lights[i]->x, 2)+pow(y - is.lights[i]->y, 2));
-			power = (power < 1 ? power : 1);
-			*r += is.lights[i]->r * power;
-			*g += is.lights[i]->g * power;
-			*b += is.lights[i]->b * power;
-		}
+	for (int i = 0; i<is.lights->count; i++) {
+		IsoLight *li = (IsoLight *)ptrarray(is.lights)[i];
+
+		power = pow(li->range,2) * 0.1/(pow(x - li->x, 2)+pow(y - li->y, 2));
+		power = (power < 1 ? power : 1);
+		*r += li->r * power;
+		*g += li->g * power;
+		*b += li->b * power;
 	}
 }
 
@@ -201,7 +259,7 @@ void iso_set_ambient(float r, float g, float b)
 //-----------------------------------------------------------------------------
 IsoAnim *new_isoanim(void)
 {
-	IsoAnim *anim = malloc(sizeof(IsoAnim));	
+	IsoAnim *anim = malloc(sizeof(IsoAnim));
 	memset(anim->anims, 0, sizeof(AnimData*)*ISODIRECTIONS);
 	return anim;
 }

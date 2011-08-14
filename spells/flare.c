@@ -90,7 +90,7 @@ static void draw(Spell * s, float time_delta)
 //-----------------------------------------------------------------------------
 static void _free(Spell ** s)
 {
-	Flare *spell = (Flare *) * s;
+	Flare *spell = (Flare *) * s;	
 	free_isolight(&spell->light);
 	free(*s);
 	*s = NULL;
@@ -123,11 +123,11 @@ Spell *new_flare(float x, float y, float mx, float my)
 	spell->light = new_isolight();
 	spell->light->x = x;
 	spell->light->y = y;
-	spell->light->range = 2;
+	spell->light->range = 1;
 	spell->light->r = 0.5;
 	spell->light->g = 0.7;
 	spell->light->b = 1.0;
-
 	spell->exploded = 0;
+	
 	return (Spell *) spell;
 }
