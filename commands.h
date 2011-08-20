@@ -30,11 +30,18 @@ typedef struct {
 	float target_y;
 } Netcmd_SpawnFlare;
 
+typedef struct {
+	NetcmdHeader header;
+	uint8_t sender;
+	char login[15];
+} Netcmd_SetLogin;
+
 #pragma pack(pop)
 
 #define NETCMD_SETTILE 1
 #define NETCMD_MOVECRITTER 2
 #define NETCMD_SPAWNFLARE 3
+#define NETCMD_SETLOGIN 4
 
 void commands_startup(void);
 

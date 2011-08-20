@@ -43,11 +43,11 @@ static void tick(Critter * c)
 	cri->anim_time += 1.0 / 30.0f;
 
 	if (cri->state == CRI_RUNNING) {
-		cri->velocity = 0.12;
+		cri->velocity = 0.08;
 		cri->face_x = cri->move_x - cri->x;
 		cri->face_y = cri->move_y - cri->y;
 		float len = sqrt(cri->face_x * cri->face_x + cri->face_y * cri->face_y);
-		if (len < 0.12) {
+		if (len < 0.08) {
 			cri->state = CRI_IDLE;
 		}
 		cri->face_x /= len;

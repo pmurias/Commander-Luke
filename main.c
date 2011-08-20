@@ -130,7 +130,14 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 
 void client_snapshot_callback(void *buf, uint32_t size)
 {
-	printf("Client snapshot callback\n");
+	printf("Client snapshot callback %d\n", size);	
+	for (int i = 0; i <MAX_CLIENTS; i++)
+	{		
+		if (!logins[i]) {
+			logins[i] = new_str();
+		}		
+		str_set(logins[i], (char*)buf+i*15);
+	}
 }
 
 void client_loop(NetworkType * network)
@@ -161,7 +168,13 @@ void client_loop(NetworkType * network)
 	light->y = 50;
 	light->range = 4;
 	
-	iso_set_ambient(0.05, 0.05, 0.05);	
+	iso_set_ambient(0.05, 0.05, 0.05);
+	
+	Netcmd_SetLogin cmd;
+	cmd.header.type = NETCMD_SETLOGIN;
+	cmd.sender = network->get_id(network->state);
+	memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
+	network->add_command(network->state, (Netcmd*)&cmd);
 	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
@@ -219,7 +232,15 @@ void client_loop(NetworkType * network)
 						Spell *flare = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
 						ptrarray_add(spells, flare);
 						break;
-					}				
+					}
+				case NETCMD_SETLOGIN:{
+						Netcmd_SetLogin *sl = (Netcmd_SetLogin*) command;
+						if (!logins[sl->sender]) {
+							logins[sl->sender] = new_str();
+						}
+						str_set(logins[sl->sender], sl->login);
+						break;
+					}
 				default:
 					printf("Unknown command\n");
 				}
@@ -265,6 +286,15 @@ void client_loop(NetworkType * network)
 		int hp = c->vtable->get_hp(c);
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "HP: %d\nFPS: %d", hp, (int)round(1.0 / window_frame_time()));
+		for (int i = 0; i< MAX_CLIENTS; i++) {
+			if (logins[i]!= NULL) {
+				float x, y, sx, sy;
+				cri[i]->vtable->get_viewpoint(cri[i], &x, &y);
+				iso_world2screen(x, y, &sx, &sy);				
+				font_print(font_get("Jura"), sx, sy, 1.0, logins[i]->val);
+			}
+		}
+		
 
 		window_end_frame();
 	}
@@ -275,16 +305,25 @@ void client_loop(NetworkType * network)
 	window_close();
 }
 
+//------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
-{
-	*buf = malloc(sizeof(7));
-	sprintf(*buf, "Hello!");
-	*size = 7;	
+{	
+	*buf = malloc(MAX_CLIENTS*15);
+	memset(*buf, 0, MAX_CLIENTS*15);	
+	for (int i = 0; i < MAX_CLIENTS; i++) {		
+		if (logins[i] != NULL) {								
+			memcpy(*buf + i*15, logins[i]->val, logins[i]->len);			
+		}
+	}	
+	*size = MAX_CLIENTS*15;	
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
-{
-	printf("Got login '%s'\n", (char*)login);
+{	
+	if (!logins[cid]) {
+		logins[cid] = new_str();		
+	}	
+	str_set(logins[cid], (char*)login);
 	return 1;
 }
 

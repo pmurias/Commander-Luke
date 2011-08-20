@@ -141,12 +141,11 @@ static void client_read(TcpClient * socket, char *buf, int len)
 		i += rbytes;
 		state->num_read_bytes += rbytes;		
 			
-		if (state->num_read_bytes == state->msg_size) {			
-			process_message(state);			
+		if (state->msg_type != TCP_MSG_NONE && state->num_read_bytes == state->msg_size) {						
+			process_message(state);
 			state->msg_size = 0;
 			if (i != len) {
-				printf("error: more than one message per buffer.\n");
-				exit(1);
+				printf("warning: more than one message per buffer (%d bytes).\n", len - i);				
 			}
 		}
 	}		
