@@ -27,7 +27,7 @@ void blit_startup(void)
 //-----------------------------------------------------------------------------
 Sprite *blit_load_sprite(char *texname)
 {
-	printf("Loading sprite '%s'... ", texname);
+	printf("Loading sprite '%s'... ", texname);	
 	Sprite *sprite = malloc(sizeof(Sprite));
 	Texture *tex = texture_from_file(texname);
 	sprite->texture = tex;

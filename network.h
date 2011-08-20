@@ -28,7 +28,7 @@ typedef struct {
     void (*logic_tick)(void* state);
     void (*tick)(void* state);
 	 uint8_t (*get_id)(void* state);
-    void (*cleanup)(void* state);	 
+    void (*cleanup)(void* state);
 } NetworkType;
 
 #endif

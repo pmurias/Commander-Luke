@@ -37,7 +37,7 @@ void *array_get(Array *arr, int i)
 void array_remove(Array *arr, int i)
 {
 	if (i!= arr->count-1) {		
-		memcpy(arr->data +i*arr->elem_size, arr->data + (i+1)*arr->elem_size, (arr->count-i-1)*arr->elem_size);
+		memmove(arr->data +i*arr->elem_size, arr->data + (i+1)*arr->elem_size, (arr->count-i-1)*arr->elem_size);
 	}
 	arr->count--;
 	if (arr->count < arr->size/4 && arr->size/2 > MIN_ARRAY_SIZE) {

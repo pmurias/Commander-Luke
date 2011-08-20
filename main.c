@@ -128,7 +128,11 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 	engine->map->tiles[c->tile_y * engine->map->width + c->tile_x] = c->type;
 }
 
-#include <GL/gl.h>
+void client_snapshot_callback(void *buf, uint32_t size)
+{
+	printf("Client snapshot callback\n");
+}
+
 void client_loop(NetworkType * network)
 {
 	window_open(800, 600, 0, "Commander Luke");
@@ -271,12 +275,27 @@ void client_loop(NetworkType * network)
 	window_close();
 }
 
+void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
+{
+	*buf = malloc(sizeof(7));
+	sprintf(*buf, "Hello!");
+	*size = 7;	
+}
+
+int server_login_callback(void *login, uint8_t cid, uint32_t size)
+{
+	printf("Got login '%s'\n", (char*)login);
+	return 1;
+}
+
 void server_loop(NetworkType * network)
 {
+	tcpserverstate_set_snapshot_callback(network->state, &server_snapshot_callback);
+	tcpserverstate_set_login_callback(network->state, &server_login_callback);
 	while (1) {
 		network->tick(network->state);		
 	}
-}
+}	
 
 void system_startup()
 {
@@ -294,8 +313,13 @@ int main(int argc, char **argv)
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
 			server_loop(new_tcp_server_state());
-		} else if (strcmp(argv[1], "--client") == 0 && argc == 3) {
-			client_loop(new_tcp_client_state(argv[2], "1234"));
+		} else if (strcmp(argv[1], "--client") == 0 && argc == 4) {
+			client_loop(new_tcp_client_state(
+				argv[2], 
+				1234, 
+				argv[3], 
+				1+strlen(argv[3]),
+				&client_snapshot_callback));
 		} else {
 			usage();
 		}
