@@ -169,12 +169,14 @@ void client_loop(NetworkType * network)
 	light->range = 4;
 	
 	iso_set_ambient(0.05, 0.05, 0.05);
-	
-	Netcmd_SetLogin cmd;
-	cmd.header.type = NETCMD_SETLOGIN;
-	cmd.sender = network->get_id(network->state);
-	memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
-	network->add_command(network->state, (Netcmd*)&cmd);
+
+	if (logins[network->get_id(network->state)]) {
+		Netcmd_SetLogin cmd;
+		cmd.header.type = NETCMD_SETLOGIN;
+		cmd.sender = network->get_id(network->state);
+		memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
+		network->add_command(network->state, (Netcmd*)&cmd);
+	}
 	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
@@ -363,6 +365,9 @@ int main(int argc, char **argv)
 			usage();
 		}
 	} else if (argc == 1) {
+		for (int i=0;i < MAX_CLIENTS;i++) {
+			logins[i] = NULL;
+		}
 		client_loop(single_player_network());
 	} else {
 		usage();
