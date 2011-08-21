@@ -225,7 +225,7 @@ void client_loop(NetworkType * network)
 	light->range = 4;
 	
 	iso_set_ambient(0.05, 0.05, 0.05);
-	
+
 	Netcmd_SetLogin cmd;
 	cmd.header.type = NETCMD_SETLOGIN;
 	cmd.sender = network->get_id(network->state);		
@@ -400,7 +400,10 @@ int main(int argc, char **argv)
 			usage();
 		}
 	} else if (argc == 1) {
-		client_loop(single_player_network());
+		for (int i=0;i < MAX_CLIENTS;i++) {
+			logins[i] = NULL;
+		}
+		client_loop(single_player_network(&ticks));
 	} else {
 		usage();
 	}
