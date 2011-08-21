@@ -19,6 +19,8 @@ struct CritterVTable {
   void (*think)(Critter* critter); // The critter AI gives itself orders
   void (*tick)(Critter* critter); // The critter update it's state: walks, shoots etc.
   void (*order)(Critter* critter,Netcmd* command); // Orders the critter to execute command
+  void (*deflate)(Critter *critter, void** buf, uint32_t *size);
+  void (*inflate)(Critter *critter, void* buf, uint32_t size);
   void (*get_viewpoint)(Critter* critter,float *x,float *y);
   void (*damage)(Critter*,float hp);
   float (*get_hp)(Critter*);

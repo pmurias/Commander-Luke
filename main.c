@@ -127,15 +127,15 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 }
 
 void client_snapshot_callback(void *buf, uint32_t size)
-{
-	printf("Client snapshot callback %d\n", size);	
+{		
 	for (int i = 0; i <MAX_CLIENTS; i++)
 	{		
 		if (!logins[i]) {
 			logins[i] = new_str();
 		}		
 		str_set(logins[i], (char*)buf+i*15);
-	}
+		cri[i]->vtable->inflate(cri[i], buf+300+i*8, 8);
+	}	
 }
 
 void game_logic_tick(NetworkType *network)
@@ -205,7 +205,6 @@ void client_loop(NetworkType * network)
 	Camera *camera = camera_init();
 
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_human(50, 50);
 		lights[i] = new_isolight();
 		lights[i]->r = 1;
 		lights[i]->g = 0.5;
@@ -326,14 +325,20 @@ void client_loop(NetworkType * network)
 //------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 {	
-	*buf = malloc(MAX_CLIENTS*15);
+	*buf = malloc(MAX_CLIENTS*(15+8));
 	memset(*buf, 0, MAX_CLIENTS*15);	
 	for (int i = 0; i < MAX_CLIENTS; i++) {		
 		if (logins[i] != NULL) {								
 			memcpy(*buf + i*15, logins[i]->val, logins[i]->len);			
 		}
+		
+		void *deflate;
+		uint32_t size;
+		cri[i]->vtable->deflate(cri[i], &deflate, &size);
+		memcpy(*buf+300+i*8, deflate, 8);
+		free(deflate);
 	}	
-	*size = MAX_CLIENTS*15;	
+	*size = MAX_CLIENTS*(15+8);	
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
@@ -352,10 +357,7 @@ void server_loop(NetworkType * network)
 	tcpserverstate_set_turnsent_callback(network->state, &newturn_callback);
 	
 	network_type = network;
-	
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_human(50, 50);
-	}
+
 	spells = new_ptrarray();
 	
 	while (1) {
@@ -378,6 +380,10 @@ void system_startup()
 	human_init_vtable();
 	blurred_init_vtable();
 	flare_init_vtable();
+	
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		cri[i] = new_human(50, 50);
+	}
 }
 
 int main(int argc, char **argv)

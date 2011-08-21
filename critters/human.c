@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "iso.h"
 #include "critter.h"
@@ -106,6 +107,24 @@ static void order(Critter * c, Netcmd * command)
 }
 
 //-----------------------------------------------------------------------------
+static void deflate(Critter *c, void **buf, uint32_t *size)
+{
+	Human *cri = (Human*)c;
+	*buf = malloc(8);
+	memcpy(*buf, &cri->x, 4);
+	memcpy(*buf + 4, &cri->y, 4);
+	*size = 8;	
+}
+
+//-----------------------------------------------------------------------------
+static void inflate(Critter *c, void *buf, uint32_t size)
+{
+	Human *cri = (Human*)c;
+	memcpy(&cri->x, buf, 4);
+	memcpy(&cri->y, buf+4, 4);
+}
+
+//-----------------------------------------------------------------------------
 static void get_viewpoint(Critter * c, float *x, float *y)
 {
 	Human *cri = (Human *) c;
@@ -129,6 +148,8 @@ void human_init_vtable()
 	vtable.order = order;
 	vtable.draw = draw;
 	vtable.damage = damage;
+	vtable.deflate = deflate;
+	vtable.inflate = inflate;
 	vtable.get_viewpoint = get_viewpoint;
 	vtable.get_hp = get_hp;
 }
