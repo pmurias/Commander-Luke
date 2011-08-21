@@ -110,10 +110,11 @@ static void order(Critter * c, Netcmd * command)
 static void deflate(Critter *c, void **buf, uint32_t *size)
 {
 	Human *cri = (Human*)c;
-	*buf = malloc(8);
+	*buf = malloc(12);
 	memcpy(*buf, &cri->x, 4);
 	memcpy(*buf + 4, &cri->y, 4);
-	*size = 8;	
+	memcpy(*buf + 8, &cri->hp, 4);
+	*size = 12;	
 }
 
 //-----------------------------------------------------------------------------
@@ -122,6 +123,7 @@ static void inflate(Critter *c, void *buf, uint32_t size)
 	Human *cri = (Human*)c;
 	memcpy(&cri->x, buf, 4);
 	memcpy(&cri->y, buf+4, 4);
+	memcpy(&cri->hp, buf+8, 4);
 }
 
 //-----------------------------------------------------------------------------

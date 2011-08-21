@@ -134,7 +134,7 @@ void client_snapshot_callback(void *buf, uint32_t size)
 			logins[i] = new_str();
 		}		
 		str_set(logins[i], (char*)buf+i*15);
-		cri[i]->vtable->inflate(cri[i], buf+300+i*8, 8);
+		cri[i]->vtable->inflate(cri[i], buf+300+i*12, 12);
 	}	
 }
 
@@ -325,7 +325,7 @@ void client_loop(NetworkType * network)
 //------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 {	
-	*buf = malloc(MAX_CLIENTS*(15+8));
+	*buf = malloc(MAX_CLIENTS*(15+12));
 	memset(*buf, 0, MAX_CLIENTS*15);	
 	for (int i = 0; i < MAX_CLIENTS; i++) {		
 		if (logins[i] != NULL) {								
@@ -335,10 +335,10 @@ void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 		void *deflate;
 		uint32_t size;
 		cri[i]->vtable->deflate(cri[i], &deflate, &size);
-		memcpy(*buf+300+i*8, deflate, 8);
+		memcpy(*buf+300+i*12, deflate, 12);
 		free(deflate);
 	}	
-	*size = MAX_CLIENTS*(15+8);	
+	*size = MAX_CLIENTS*(15+12);	
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
