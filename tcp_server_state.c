@@ -26,9 +26,14 @@ typedef struct
 	char bulk_buf[8196];
 	uint32_t bulk_size;
 	TcpConnection connections[MAX_CONNECTIONS];
+	Queue *in;
+	float last_send_time;
+	float time_step;
+	uint32_t *ticks;
         
 	SnapshotCallback snapshot_callback;
 	LoginCallback login_callback;	
+	NewTurnCallback newturn_callback;
 } TcpServerState;
 
 //-----------------------------------------------------------------------------
@@ -46,26 +51,32 @@ static void tick(void *d)
 			tcpserver_write(state->socket, i, state->bulk_buf, 5+data_size);
 						
 			state->connections[i].needs_greeting = 0;
-			state->connections[i].waiting = 1; // this will cause lag when new player joins
+			state->connections[i].waiting = 1; // this will cause lag when new player joins			
 		}
 	}
 	
 	int none_waits = 1;
 	for (int i = 0; i< MAX_CONNECTIONS; i++) {
-		none_waits &= !(state->connections[i].active && state->connections[i].waiting);
+		none_waits &= !(state->connections[i].active && state->connections[i].waiting);				
 	}
-			
+	
 	if (none_waits) {		
+		state->newturn_callback();		
+		float curr_time = glfwGetTime();		
+		uint32_t frames = ((curr_time-state->last_send_time) / state->time_step);				
+		state->last_send_time = curr_time;
+		*state->ticks += frames;
 		uint32_t data_size = state->bulk_size - 5;
 		state->bulk_buf[0] = TCP_MSG_CMDS;
-		memcpy(state->bulk_buf+1, &data_size, sizeof(uint32_t));			
+		memcpy(state->bulk_buf+1, &data_size, sizeof(uint32_t));
+		memcpy(state->bulk_buf+5, &frames, sizeof(uint32_t));
 		for (int i = 0; i< MAX_CONNECTIONS; i++) {				
 			if (state->connections[i].active) {				
 				tcpserver_write(state->socket, i, state->bulk_buf, state->bulk_size);
 				state->connections[i].waiting = 1;				
 			}
-		}		
-		state->bulk_size = 5;
+		}				
+		state->bulk_size = 9;
 	}
 }
 
@@ -81,7 +92,23 @@ static void add_command(void *d, Netcmd *cmd)
 
 //-----------------------------------------------------------------------------
 static Netcmd *get_command(void *d)
-{
+{	
+	TcpServerState *state = d;
+	
+	int none_waits = 1;
+	for (int i = 0; i< MAX_CONNECTIONS; i++) {
+		none_waits &= !(state->connections[i].active && state->connections[i].waiting);				
+	}
+	
+	if (queue_first(state->in)) {
+		Netcmd *cmd = queue_first(state->in);
+						
+		Netcmd *cmdcopy = malloc(command_size(cmd));
+		memcpy(cmdcopy, cmd, command_size(cmd));
+		
+		queue_pop(state->in);
+		return cmdcopy;
+	}
 	return NULL;
 }
 
@@ -126,11 +153,22 @@ static void send_snapshot(TcpServerState *state, int cid)
 static void process_message(TcpServerState *state, int cid)
 {
 	TcpConnection *conn = &state->connections[cid];
+	uint32_t off = 0;
 	
 	switch (conn->msg_type) {
 	case TCP_MSG_CMDS:
+		/* copy cmds to broadcast buffer */
 		memcpy(state->bulk_buf + state->bulk_size, conn->read_buf, conn->msg_size);
-		state->bulk_size += conn->msg_size;			
+		state->bulk_size += conn->msg_size;
+		/* parse cmds for server simulation */
+		while (off != conn->msg_size) {
+			int cmdsize = command_size((Netcmd*)(conn->read_buf+off));			
+			Netcmd *cmd = malloc(cmdsize);
+			memcpy(cmd, conn->read_buf+off, cmdsize);
+			off += cmdsize;
+			
+			queue_push(state->in, cmd);				
+		}		
 		conn->waiting = 0;
 		break;
 	case TCP_MSG_CONFIRM:
@@ -170,7 +208,7 @@ static void server_read(TcpServer *server, int cid, char *buf, int len)
 		i += rbytes;
 		conn->num_read_bytes += rbytes;
 		
-		if (conn->num_read_bytes == conn->msg_size) {
+		if (conn->msg_type != TCP_MSG_NONE && conn->num_read_bytes == conn->msg_size) {			
 			process_message(state, cid);			
 			conn->msg_size = 0;
 			conn->msg_type = TCP_MSG_NONE;
@@ -192,10 +230,19 @@ void tcpserverstate_set_login_callback(void *s, LoginCallback cb)
 	state->login_callback = cb;
 }
 
+//-----------------------------------------------------------------------------
+void tcpserverstate_set_turnsent_callback(void *s, NewTurnCallback cb)
+{
+	TcpServerState *state = (TcpServerState *) s;
+	state->newturn_callback = cb;
+}
+
 
 //-----------------------------------------------------------------------------
-NetworkType *new_tcp_server_state(void)
+NetworkType *new_tcp_server_state(uint32_t *ticks)
 {
+	glfwInit();
+	
 	NetworkType *tcp = malloc(sizeof(NetworkType));
 	tcp->tick = tick;
 	tcp->logic_tick = logic_tick;
@@ -204,12 +251,17 @@ NetworkType *new_tcp_server_state(void)
 	tcp->cleanup = cleanup;
 
 	TcpServerState *state = (TcpServerState *) malloc(sizeof(TcpServerState));
+	memset(state, 0, sizeof(TcpServerState));
 	tcp->state = (void *)state;
 	
-	state->bulk_size = 5;
+	state->bulk_size = 9;
+	state->in = new_queue(1);
+	state->ticks = ticks;
+	state->last_send_time = glfwGetTime();
+	state->time_step = 1.0/30.0;
 	
 	for (int i = 0; i < MAX_CONNECTIONS; i++) {
-		state->connections[i].read_buf = malloc(1);
+		state->connections[i].read_buf = malloc(1);				
 	}
 
 	state->socket = new_tcpserver();

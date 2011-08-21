@@ -24,8 +24,10 @@ typedef struct  {
 	TcpClient *socket;
 	char client_id;
 	int ready;
+	uint32_t *ticks;
 	
 	ClientSnapshotCallback snapshot_callback;
+	NewTurnCallback newturn_callback;
 } TcpClientState;
 
 //-----------------------------------------------------------------------------
@@ -59,7 +61,7 @@ static void logic_tick(void *d)
 	uint32_t data_size = packet_size - sizeof(uint32_t)-1;
 	packet[0] = TCP_MSG_CMDS;
 	memcpy(packet+1, &data_size, sizeof(uint32_t));
-		
+			
 	tcpclient_write(state->socket, packet, packet_size);
 	state->waiting = 1;
 	state->wait_start = glfwGetTime();
@@ -94,18 +96,21 @@ static void process_message(TcpClientState *state)
 		state->client_id = state->read_buf[0];
 		printf("Got CID: %d\n", state->client_id);
 		break;
-	case TCP_MSG_CMDS: /* parse message as chain fo commands */			
+	case TCP_MSG_CMDS: 
+		/* parse message as chain fo commands */
+		state->newturn_callback();
+		*state->ticks += *(uint32_t*)(state->read_buf+off);
+		off += 4;
 		while (off != state->msg_size) {					
-			int cmdsize = command_size((Netcmd*)(state->read_buf+off));												
+			int cmdsize = command_size((Netcmd*)(state->read_buf+off));					
 			Netcmd *cmd = malloc(cmdsize);
 			memcpy(cmd, state->read_buf+off, cmdsize);
 			off += cmdsize;
 			
-			queue_push(state->in, cmd);				
+			queue_push(state->in, cmd);							
 		}
 					
-		state->waiting = 0;
-		printf("Waited %f %d\n",glfwGetTime()-state->wait_start,state->msg_size);
+		state->waiting = 0;		
 		break;
 	case TCP_MSG_SNAPSHOT:		
 		state->snapshot_callback(state->read_buf, state->msg_size);
@@ -190,7 +195,14 @@ static uint8_t get_id(void *d)
 }
 
 //-----------------------------------------------------------------------------
-NetworkType* new_tcp_client_state(char* ip, int port, void *login_data, uint32_t ldsize, ClientSnapshotCallback cb)
+NetworkType* new_tcp_client_state(
+	char* ip, 
+	int port, 
+	void *login_data, 
+	uint32_t ldsize, 
+	ClientSnapshotCallback cb,
+	NewTurnCallback ntcb,
+	uint32_t *ticks)
 {
 	NetworkType *tcp = malloc(sizeof(NetworkType));
 	tcp->tick = tick;
@@ -201,6 +213,7 @@ NetworkType* new_tcp_client_state(char* ip, int port, void *login_data, uint32_t
 	tcp->cleanup = cleanup;
 
 	TcpClientState *state = (TcpClientState *) malloc(sizeof(TcpClientState));
+	memset(state, 0, sizeof(TcpClientState));
 	tcp->state = (void *)state;
 
 	state->msg_size = 0;
@@ -212,6 +225,7 @@ NetworkType* new_tcp_client_state(char* ip, int port, void *login_data, uint32_t
 	state->client_id = -1;
 	state->ready = 0;
 	state->read_buf = malloc(1);
+	state->ticks = ticks;
 
 	state->socket = new_tcpclient();
 	tcpclient_init(state->socket, port, ip);
@@ -227,6 +241,7 @@ NetworkType* new_tcp_client_state(char* ip, int port, void *login_data, uint32_t
 	tcpclient_write(state->socket, packet, 5+ldsize);
 	
 	state->snapshot_callback = cb;
+	state->newturn_callback = ntcb;
 	
 	while (!state->ready) {
 		tick(state);

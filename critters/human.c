@@ -25,14 +25,13 @@ typedef struct {
 	float move_x;
 	float move_y;
 
-	float hp;
+	float hp;	
 } Human;
 
 //-----------------------------------------------------------------------------
 static void tick(Critter * c)
-{
-
-	Human *cri = (Human *) c;
+{	
+	Human *cri = (Human *) c;	
 
 	if (cri->hp <= 0) {
 		return;
@@ -51,11 +50,11 @@ static void tick(Critter * c)
 			cri->state = CRI_IDLE;
 		}
 		cri->face_x /= len;
-		cri->face_y /= len;
-	}
+		cri->face_y /= len;		
+	}	
 	if (cri->state == CRI_IDLE) {
 		cri->velocity = 0;
-	}
+	}	
 }
 
 //-----------------------------------------------------------------------------
@@ -67,8 +66,7 @@ static void draw(Critter * c, float time_delta)
 		Sprite *s = blit_get_sprite("Blurred_001");
 		float wx, wy;
 		iso_world2screen(cri->x, cri->y, &wx, &wy);
-		blit_sprite(s, wx - 50, wy - 50);
-		return;
+		blit_sprite(s, wx - 50, wy - 50);		
 		return;
 	}
 	if (cri->state == CRI_IDLE) {
@@ -123,24 +121,23 @@ float get_hp(Critter * c)
 }
 
 //-----------------------------------------------------------------------------
-static CritterVTable *vtable;
+static CritterVTable vtable;
 void human_init_vtable()
-{
-	vtable = malloc(sizeof(CritterVTable));
-	vtable->tick = tick;
-	vtable->think = think;
-	vtable->order = order;
-	vtable->draw = draw;
-	vtable->damage = damage;
-	vtable->get_viewpoint = get_viewpoint;
-	vtable->get_hp = get_hp;
+{	
+	vtable.tick = tick;
+	vtable.think = think;
+	vtable.order = order;
+	vtable.draw = draw;
+	vtable.damage = damage;
+	vtable.get_viewpoint = get_viewpoint;
+	vtable.get_hp = get_hp;
 }
 
 //-----------------------------------------------------------------------------
 Critter *new_human(float x, float y)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
-	h->vtable = vtable;
+	h->vtable = &vtable;	
 	h->x = x;
 	h->y = y;
 	h->velocity = 0;
@@ -148,6 +145,6 @@ Critter *new_human(float x, float y)
 	h->face_y = 1;
 	h->state = CRI_IDLE;
 	h->anim_time = 0;
-	h->hp = 100;
+	h->hp = 100;	
 	return (Critter *) h;
 }

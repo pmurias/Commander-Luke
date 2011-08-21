@@ -33,6 +33,7 @@ IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
 Array *spells;
 Str *logins[MAX_CLIENTS];
+uint32_t ticks;
 
 typedef struct {
 	int width;
@@ -83,10 +84,7 @@ void usage()
 }
 
 Engine *engine_init()
-{
-	human_init_vtable();
-	blurred_init_vtable();
-	flare_init_vtable();
+{	
 	Engine *engine = malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	return engine;
@@ -140,10 +138,68 @@ void client_snapshot_callback(void *buf, uint32_t size)
 	}
 }
 
+void game_logic_tick(NetworkType *network)
+{	
+	Netcmd *command;
+	while ((command = network->get_command(network->state))) {
+		switch (command->header.type) {
+		case NETCMD_SETTILE:{
+				//command_set_tile(engine, (Netcmd_SetTile *) command);
+				break;
+			}
+		case NETCMD_MOVECRITTER:{
+				Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;				
+				active[move->sender] = 1;
+				cri[move->sender]->vtable->order(cri[move->sender], command);
+				break;
+			}
+		case NETCMD_SPAWNFLARE:{
+				Netcmd_SpawnFlare *sf = (Netcmd_SpawnFlare *) command;
+				Spell *flare = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
+				ptrarray_add(spells, flare);
+				break;
+			}
+		case NETCMD_SETLOGIN:{
+				Netcmd_SetLogin *sl = (Netcmd_SetLogin*) command;
+				if (!logins[sl->sender]) {
+					logins[sl->sender] = new_str();
+				}
+				str_set(logins[sl->sender], sl->login);
+				break;
+			}
+		default:
+			printf("Unknown command\n");
+		}
+		free(command);
+	}	
+
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		cri[i]->vtable->tick(cri[i]);				
+	}		
+	for (int i = 0; i < spells->count; i++) {
+		Spell *spell = (Spell *)ptrarray(spells)[i];
+		spell->vtable->tick(&spell);
+		if (spell == NULL) {
+			ptrarray_remove(spells, i);
+			i--;
+		}				
+	}
+}
+
+NetworkType *network_type;
+void newturn_callback(void)
+{
+	while (ticks) {
+		game_logic_tick(network_type);
+		ticks--;
+	}	
+}
+
 void client_loop(NetworkType * network)
 {
 	window_open(800, 600, 0, "Commander Luke");
 	load_assets();
+	network_type = network;
 
 	Engine *engine = engine_init();
 	Camera *camera = camera_init();
@@ -156,7 +212,7 @@ void client_loop(NetworkType * network)
 		lights[i]->b = 0.1;
 		lights[i]->range = 0;
 		lights[i]->x = 50;
-		lights[i]->y = 50;		
+		lights[i]->y = 50;
 	}
 	spells = new_ptrarray();
 	
@@ -172,9 +228,11 @@ void client_loop(NetworkType * network)
 	
 	Netcmd_SetLogin cmd;
 	cmd.header.type = NETCMD_SETLOGIN;
-	cmd.sender = network->get_id(network->state);
-	memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
-	network->add_command(network->state, (Netcmd*)&cmd);
+	cmd.sender = network->get_id(network->state);		
+	if (logins[cmd.sender]) {	/* in single player there is no login */
+		memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
+		network->add_command(network->state, (Netcmd*)&cmd);
+	}
 	
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
@@ -205,66 +263,26 @@ void client_loop(NetworkType * network)
 				cmd.sender = network->get_id(network->state);
 
 				Critter *player = cri[cmd.sender];
-				float hp = player->vtable->get_hp(player);
+				float hp = player->vtable->get_hp(player);				
 
 				if (hp >= 1) {
-					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);									
+					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);
 					iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
 					network->add_command(network->state, (Netcmd*)&cmd);
 				}
 			}
-
-			Netcmd *command;
-			while ((command = network->get_command(network->state))) {
-				switch (command->header.type) {
-				case NETCMD_SETTILE:{
-						command_set_tile(engine, (Netcmd_SetTile *) command);
-						break;
-					}
-				case NETCMD_MOVECRITTER:{
-						Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;
-						active[move->sender] = 1;
-						cri[move->sender]->vtable->order(cri[move->sender], command);
-						break;
-					}
-				case NETCMD_SPAWNFLARE:{
-						Netcmd_SpawnFlare *sf = (Netcmd_SpawnFlare *) command;
-						Spell *flare = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
-						ptrarray_add(spells, flare);
-						break;
-					}
-				case NETCMD_SETLOGIN:{
-						Netcmd_SetLogin *sl = (Netcmd_SetLogin*) command;
-						if (!logins[sl->sender]) {
-							logins[sl->sender] = new_str();
-						}
-						str_set(logins[sl->sender], sl->login);
-						break;
-					}
-				default:
-					printf("Unknown command\n");
-				}
-				free(command);
-			}
-
-			for (int i = 0; i < MAX_CLIENTS; i++) {
-				cri[i]->vtable->tick(cri[i]);				
+							
+			if (ticks) {
+				game_logic_tick(network);				
+				ticks--;
 			}			
-			for (int i = 0; i < spells->count; i++) {
-				Spell *spell = (Spell *)ptrarray(spells)[i];
-				spell->vtable->tick(&spell);
-				if (spell == NULL) {
-					ptrarray_remove(spells, i);
-					i--;
-				}				
-			}									
-
-			network->logic_tick(network->state);						
+			network->logic_tick(network->state);
+																	
 			Critter *c = cri[network->get_id(network->state)];			
-			c->vtable->get_viewpoint(c, &camera->x, &camera->y);			
-
+			c->vtable->get_viewpoint(c, &camera->x, &camera->y);
+						
 			window_poll_events();
-		}		
+		}
 
 		draw_tilemap(engine->map, camera, g_tileset);
 
@@ -290,11 +308,11 @@ void client_loop(NetworkType * network)
 			if (logins[i]!= NULL) {
 				float x, y, sx, sy;
 				cri[i]->vtable->get_viewpoint(cri[i], &x, &y);
+				hp = cri[i]->vtable->get_hp(cri[i]);
 				iso_world2screen(x, y, &sx, &sy);				
-				font_print(font_get("Jura"), sx, sy, 1.0, logins[i]->val);
+				font_print(font_get("Jura"), sx, sy, 1.0, "%s %d", logins[i]->val, hp);
 			}
 		}
-		
 
 		window_end_frame();
 	}
@@ -328,11 +346,24 @@ int server_login_callback(void *login, uint8_t cid, uint32_t size)
 }
 
 void server_loop(NetworkType * network)
-{
+{	
 	tcpserverstate_set_snapshot_callback(network->state, &server_snapshot_callback);
 	tcpserverstate_set_login_callback(network->state, &server_login_callback);
+	tcpserverstate_set_turnsent_callback(network->state, &newturn_callback);
+	
+	network_type = network;
+	
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		cri[i] = new_human(50, 50);
+	}
+	spells = new_ptrarray();
+	
 	while (1) {
-		network->tick(network->state);		
+		network->tick(network->state);
+		while (ticks) {
+			game_logic_tick(network);
+			ticks--;
+		}		
 	}
 }	
 
@@ -343,6 +374,10 @@ void system_startup()
 	blit_startup();
 	font_startup();
 	iso_startup(160, 80);
+	
+	human_init_vtable();
+	blurred_init_vtable();
+	flare_init_vtable();
 }
 
 int main(int argc, char **argv)
@@ -351,14 +386,16 @@ int main(int argc, char **argv)
 
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
-			server_loop(new_tcp_server_state());
+			server_loop(new_tcp_server_state(&ticks));
 		} else if (strcmp(argv[1], "--client") == 0 && argc == 4) {
 			client_loop(new_tcp_client_state(
 				argv[2], 
 				1234, 
 				argv[3], 
 				1+strlen(argv[3]),
-				&client_snapshot_callback));
+				&client_snapshot_callback,
+				&newturn_callback,
+				&ticks));
 		} else {
 			usage();
 		}
