@@ -34,6 +34,7 @@ int active[MAX_CLIENTS];
 Array *spells;
 Str *logins[MAX_CLIENTS];
 uint32_t ticks;
+char *login;
 
 typedef struct {
 	int width;
@@ -103,7 +104,7 @@ void load_assets()
 	g_tileset[1] = blit_load_sprite("./data/tiles/grass0.png");
 	g_tileset[2] = blit_load_sprite("./data/tiles/grass1.png");
 	g_tileset[3] = blit_load_sprite("./data/tiles/grass2.png");
-	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");		
+	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
 
 	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
 	blit_load_spritesheet("./data/blurred.png", "./data/blurred.txt");
@@ -197,6 +198,10 @@ void newturn_callback(void)
 
 void client_loop(NetworkType * network)
 {
+	tcpclientstate_set_snapshot_callback(network->state, &client_snapshot_callback);
+	tcpclientstate_set_newturn_callback(network->state, &newturn_callback);
+	tcpclientstate_login(network->state, login, 1+strlen(login));
+					
 	window_open(800, 600, 0, "Commander Luke");
 	load_assets();
 	network_type = network;
@@ -256,7 +261,8 @@ void client_loop(NetworkType * network)
 				iso_screen2world(window_xmouse(),  window_ymouse(), &command.move_x, &command.move_y);
 				network->add_command(network->state, (Netcmd*)&command);
 			}
-			if (window_mousepressed(1)) {								
+			if (window_mousepressed(1)) {
+				for (int i=0; i < 3; i++) {
 				Netcmd_SpawnFlare cmd;
 				cmd.header.type = NETCMD_SPAWNFLARE;
 				cmd.sender = network->get_id(network->state);
@@ -265,9 +271,13 @@ void client_loop(NetworkType * network)
 				float hp = player->vtable->get_hp(player);				
 
 				if (hp >= 1) {
-					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);
+					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
 					iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
+					float f = 200.0/sqrt(pow(cmd.x-cmd.target_x, 2) + pow(cmd.y-cmd.target_y, 2));
+					cmd.target_x += (float)((rand_rand()%100)-50)/f;
+					cmd.target_y += (float)((rand_rand()%100)-50)/f;
 					network->add_command(network->state, (Netcmd*)&cmd);
+				}
 				}
 			}
 							
@@ -309,7 +319,7 @@ void client_loop(NetworkType * network)
 				cri[i]->vtable->get_viewpoint(cri[i], &x, &y);
 				hp = cri[i]->vtable->get_hp(cri[i]);
 				iso_world2screen(x, y, &sx, &sy);				
-				font_print(font_get("Jura"), sx, sy, 1.0, "%s %d", logins[i]->val, hp);
+				font_print(font_get("Jura"), sx, sy, 1.0, "%s\n%d", logins[i]->val, hp);
 			}
 		}
 
@@ -394,14 +404,8 @@ int main(int argc, char **argv)
 		if (strcmp(argv[1], "--server") == 0) {
 			server_loop(new_tcp_server_state(&ticks));
 		} else if (strcmp(argv[1], "--client") == 0 && argc == 4) {
-			client_loop(new_tcp_client_state(
-				argv[2], 
-				1234, 
-				argv[3], 
-				1+strlen(argv[3]),
-				&client_snapshot_callback,
-				&newturn_callback,
-				&ticks));
+			login = argv[3];
+			client_loop(new_tcp_client_state(argv[2], 1234, &ticks));
 		} else {
 			usage();
 		}

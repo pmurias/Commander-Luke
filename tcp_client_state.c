@@ -195,13 +195,45 @@ static uint8_t get_id(void *d)
 }
 
 //-----------------------------------------------------------------------------
+void tcpclientstate_set_snapshot_callback(void *d, ClientSnapshotCallback cb)
+{
+	TcpClientState *state = (TcpClientState *) d;
+	state->snapshot_callback = cb;
+}
+
+//-----------------------------------------------------------------------------
+void tcpclientstate_set_newturn_callback(void *d, NewTurnCallback cb)
+{
+	TcpClientState *state = (TcpClientState *) d;
+	state->newturn_callback = cb;
+}
+
+//-----------------------------------------------------------------------------
+void tcpclientstate_wait_for_snapshot(void *d)
+{
+	TcpClientState *state = (TcpClientState *) d;
+	state->ready = 0;	
+	while (!state->ready) {
+		tick(state);
+	}
+}
+
+//-----------------------------------------------------------------------------
+void tcpclientstate_login(void *d, void *login_data, uint32_t ldsize)
+{
+	TcpClientState *state = (TcpClientState *) d;
+	packet[0] = TCP_MSG_LOGIN;
+	memcpy(packet+1, &ldsize, 4);
+	memcpy(packet+5, login_data, ldsize);
+	tcpclient_write(state->socket, packet, 5+ldsize);
+
+	tcpclientstate_wait_for_snapshot(d);	
+}
+
+//-----------------------------------------------------------------------------
 NetworkType* new_tcp_client_state(
 	char* ip, 
 	int port, 
-	void *login_data, 
-	uint32_t ldsize, 
-	ClientSnapshotCallback cb,
-	NewTurnCallback ntcb,
 	uint32_t *ticks)
 {
 	NetworkType *tcp = malloc(sizeof(NetworkType));
@@ -234,19 +266,7 @@ NetworkType* new_tcp_client_state(
 	printf("Connecting...\n");
 	tcpclient_set_handlers(state->socket, &client_read, &client_disconnect);
 	tcpclient_connect(state->socket);
-	
-	packet[0] = TCP_MSG_LOGIN;
-	memcpy(packet+1, &ldsize, 4);
-	memcpy(packet+5, login_data, ldsize);
-	tcpclient_write(state->socket, packet, 5+ldsize);
-	
-	state->snapshot_callback = cb;
-	state->newturn_callback = ntcb;
-	
-	while (!state->ready) {
-		tick(state);
-	}
-	
+		
 	return tcp;
 }
 
