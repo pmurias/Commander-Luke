@@ -197,11 +197,7 @@ void newturn_callback(void)
 }
 
 void client_loop(NetworkType * network)
-{
-	tcpclientstate_set_snapshot_callback(network->state, &client_snapshot_callback);
-	tcpclientstate_set_newturn_callback(network->state, &newturn_callback);
-	tcpclientstate_login(network->state, login, 1+strlen(login));
-					
+{						
 	window_open(800, 600, 0, "Commander Luke");
 	load_assets();
 	network_type = network;
@@ -332,6 +328,15 @@ void client_loop(NetworkType * network)
 	window_close();
 }
 
+
+void tcpclient_loop(NetworkType *network)
+{
+	tcpclientstate_set_snapshot_callback(network->state, &client_snapshot_callback);
+	tcpclientstate_set_newturn_callback(network->state, &newturn_callback);
+	tcpclientstate_login(network->state, login, 1+strlen(login));
+	client_loop(network);
+}
+
 //------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 {	
@@ -361,13 +366,8 @@ int server_login_callback(void *login, uint8_t cid, uint32_t size)
 }
 
 void server_loop(NetworkType * network)
-{	
-	tcpserverstate_set_snapshot_callback(network->state, &server_snapshot_callback);
-	tcpserverstate_set_login_callback(network->state, &server_login_callback);
-	tcpserverstate_set_turnsent_callback(network->state, &newturn_callback);
-	
+{				
 	network_type = network;
-
 	spells = new_ptrarray();
 	
 	while (1) {
@@ -377,7 +377,15 @@ void server_loop(NetworkType * network)
 			ticks--;
 		}		
 	}
-}	
+}
+
+void tcpserver_loop(NetworkType *network)
+{
+	tcpserverstate_set_snapshot_callback(network->state, &server_snapshot_callback);
+	tcpserverstate_set_login_callback(network->state, &server_login_callback);
+	tcpserverstate_set_turnsent_callback(network->state, &newturn_callback);
+	server_loop(network);	
+}
 
 void system_startup()
 {
@@ -402,10 +410,10 @@ int main(int argc, char **argv)
 
 	if (argc > 1) {
 		if (strcmp(argv[1], "--server") == 0) {
-			server_loop(new_tcp_server_state(&ticks));
+			tcpserver_loop(new_tcp_server_state(&ticks));
 		} else if (strcmp(argv[1], "--client") == 0 && argc == 4) {
 			login = argv[3];
-			client_loop(new_tcp_client_state(argv[2], 1234, &ticks));
+			tcpclient_loop(new_tcp_client_state(argv[2], 1234, &ticks));
 		} else {
 			usage();
 		}
