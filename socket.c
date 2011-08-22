@@ -395,6 +395,11 @@ void tcpserver_init(TcpServer *server, int port)
 	server->read_handler = NULL;
 	server->accept_handler = NULL;
 	server->disconnect_handler = NULL;	
+	
+#ifndef WIN32
+	int optval = 1;
+	setsockopt(server->socket->handle,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof optval);
+#endif
 }
 
 //-----------------------------------------------------------------------------

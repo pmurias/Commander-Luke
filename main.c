@@ -190,6 +190,9 @@ void game_logic_tick(NetworkType *network)
 NetworkType *network_type;
 void newturn_callback(void)
 {
+	if (ticks) {
+		printf("Zryw w przod %d klatek\n", ticks);
+	}
 	while (ticks) {
 		game_logic_tick(network_type);
 		ticks--;
@@ -280,7 +283,9 @@ void client_loop(NetworkType * network)
 			if (ticks) {
 				game_logic_tick(network);				
 				ticks--;
-			}			
+			} else {
+				printf("Zrywik w miejscu\n");
+			}
 			network->logic_tick(network->state);
 																	
 			Critter *c = cri[network->get_id(network->state)];			

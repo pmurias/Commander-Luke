@@ -45,7 +45,7 @@ static void logic_tick(void *d)
 	TcpClientState *state = (TcpClientState *) d;
 
 	float currTime = glfwGetTime();
-	if (state->waiting || currTime < state->last_post_time + state->post_delay || *state->ticks > 0)
+	if (state->waiting || currTime < state->last_post_time + state->post_delay)
 		return;
 	state->last_post_time = currTime;
 	
