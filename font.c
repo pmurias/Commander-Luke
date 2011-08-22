@@ -112,6 +112,41 @@ Font *font_get(char *name)
 }
 
 //-----------------------------------------------------------------------------
+int font_str_width(Font * fnt, float s, char *fmt, ...)
+{
+	static char text[8196];
+	va_list args;
+	va_start(args, fmt);
+	vsprintf(text, fmt, args);
+	va_end(args);
+
+	int width = 0;
+	int max_width = 0;
+
+	char namebuf[2];
+	Str *str = new_str();
+	for (int i = 0; i < strlen(text); i++) {
+		if (text[i] == '\n') {
+			// TODO
+			if (max_width < width) {
+				max_width = width;
+			}
+			width = 0;
+			continue;
+		}
+		namebuf[0] = text[i];
+		namebuf[1] = 0;
+		str_set(str, namebuf);
+		GlyphInfo *g = hashmap_find(fnt->glyph_map, str);
+		if (g) {
+			width += s * g->xadvance;
+		}
+	}
+	str_free(str);
+	return max_width;
+}
+
+//-----------------------------------------------------------------------------
 void font_print(Font * fnt, int x, int y, float s, char *fmt, ...)
 {
 	static char text[8196];

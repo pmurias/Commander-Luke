@@ -320,7 +320,8 @@ void client_loop(NetworkType * network)
 				cri[i]->vtable->get_viewpoint(cri[i], &x, &y);
 				hp = cri[i]->vtable->get_hp(cri[i]);
 				iso_world2screen(x, y, &sx, &sy);				
-				font_print(font_get("Jura"), sx, sy, 1.0, "%s\n%d", logins[i]->val, hp);
+				int width = font_str_width(font_get("Jura"), 1.0, "%s\n%d", logins[i]->val, hp);
+				font_print(font_get("Jura"), sx - (width*0.5), sy, 1.0, "%s\n%d", logins[i]->val, hp);
 			}
 		}
 
