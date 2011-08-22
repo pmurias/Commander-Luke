@@ -88,7 +88,7 @@ static void think(Critter * critter)
 static void damage(Critter * c, float amount)
 {
 	Human *cri = (Human *) c;
-	cri->hp -= amount;
+	cri->hp -= amount;	
 }
 
 //-----------------------------------------------------------------------------

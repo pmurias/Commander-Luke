@@ -4,7 +4,7 @@
 #include "network.h"
 #include "queue.h"
 
-float *ticks_ptr;
+uint32_t *ticks_ptr;
 
 static void noop(void *data)
 {
@@ -33,7 +33,7 @@ static uint8_t get_id(void *data)
 	return 0;
 }
 
-NetworkType *single_player_network(float *tickptr)
+NetworkType *single_player_network(uint32_t *tickptr)
 {
 	NetworkType *single = malloc(sizeof(NetworkType));
 	single->tick = noop;

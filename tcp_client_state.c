@@ -24,7 +24,7 @@ typedef struct  {
 	TcpClient *socket;
 	char client_id;
 	int ready;
-	float *ticks;
+	uint32_t *ticks;
 	
 	ClientSnapshotCallback snapshot_callback;
 	NewTurnCallback newturn_callback;
@@ -99,7 +99,7 @@ static void process_message(TcpClientState *state)
 	case TCP_MSG_CMDS: 
 		/* parse message as chain fo commands */
 		state->newturn_callback();
-		*state->ticks += *(float*)(state->read_buf+off);
+		*state->ticks += *(uint32_t*)(state->read_buf+off);
 		off += 4;
 		while (off != state->msg_size) {					
 			int cmdsize = command_size((Netcmd*)(state->read_buf+off));					
@@ -234,7 +234,7 @@ void tcpclientstate_login(void *d, void *login_data, uint32_t ldsize)
 NetworkType* new_tcp_client_state(
 	char* ip, 
 	int port, 
-	float *ticks)
+	uint32_t *ticks)
 {
 	NetworkType *tcp = malloc(sizeof(NetworkType));
 	tcp->tick = tick;

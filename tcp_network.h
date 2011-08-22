@@ -14,12 +14,12 @@ typedef int (*LoginCallback)(void *buf, uint8_t cid, uint32_t size);
 typedef void (*ClientSnapshotCallback)(void *buf, uint32_t size);
 typedef void (*NewTurnCallback)(void);
 
-NetworkType* new_tcp_client_state(char* ip, int port, float *ticks);
+NetworkType* new_tcp_client_state(char* ip, int port, uint32_t *ticks);
 void tcpclientstate_set_snapshot_callback(void *d, ClientSnapshotCallback cb);
 void tcpclientstate_set_newturn_callback(void *d, NewTurnCallback cb);
 void tcpclientstate_wait_for_snapshot(void *d);
 void tcpclientstate_login(void *d, void *login_data, uint32_t ldsize);
-NetworkType *new_tcp_server_state(float *ticks);
+NetworkType *new_tcp_server_state(uint32_t *ticks);
 void tcpserverstate_set_snapshot_callback(void *state, SnapshotCallback cb);
 void tcpserverstate_set_login_callback(void *state, LoginCallback cb);
 void tcpserverstate_set_turnsent_callback(void *state, NewTurnCallback cb);
