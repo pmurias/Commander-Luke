@@ -33,7 +33,7 @@ IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
 Array *spells;
 Str *logins[MAX_CLIENTS];
-uint32_t ticks;
+float ticks;
 char *login;
 
 typedef struct {
@@ -190,10 +190,10 @@ void game_logic_tick(NetworkType *network)
 NetworkType *network_type;
 void newturn_callback(void)
 {
-	if (ticks) {
-		printf("Zryw w przod %d klatek\n", ticks);
+	if (ticks>=1.0) {
+		printf("Zryw w przod %f klatek\n", ticks);
 	}
-	while (ticks) {
+	while (ticks>=1.0) {
 		game_logic_tick(network_type);
 		ticks--;
 	}	
@@ -280,7 +280,7 @@ void client_loop(NetworkType * network)
 				}
 			}
 							
-			if (ticks) {
+			if (ticks>=1.0) {
 				game_logic_tick(network);				
 				ticks--;
 			} else {
@@ -378,7 +378,7 @@ void server_loop(NetworkType * network)
 	
 	while (1) {
 		network->tick(network->state);
-		while (ticks) {
+		while (ticks>=1.0) {
 			game_logic_tick(network);
 			ticks--;
 		}		

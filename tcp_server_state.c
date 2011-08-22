@@ -29,7 +29,7 @@ typedef struct
 	Queue *in;
 	float last_send_time;
 	float time_step;
-	uint32_t *ticks;
+	float *ticks;
         
 	SnapshotCallback snapshot_callback;
 	LoginCallback login_callback;	
@@ -63,13 +63,13 @@ static void tick(void *d)
 	if (none_waits) {		
 		state->newturn_callback();		
 		float curr_time = glfwGetTime();		
-		uint32_t frames = ((curr_time-state->last_send_time) / state->time_step);				
+		float frames = ((curr_time-state->last_send_time) / state->time_step);				
 		state->last_send_time = curr_time;
 		*state->ticks += frames;
 		uint32_t data_size = state->bulk_size - 5;
 		state->bulk_buf[0] = TCP_MSG_CMDS;
 		memcpy(state->bulk_buf+1, &data_size, sizeof(uint32_t));
-		memcpy(state->bulk_buf+5, &frames, sizeof(uint32_t));
+		memcpy(state->bulk_buf+5, &frames, sizeof(float));
 		for (int i = 0; i< MAX_CONNECTIONS; i++) {				
 			if (state->connections[i].active) {				
 				tcpserver_write(state->socket, i, state->bulk_buf, state->bulk_size);
@@ -239,7 +239,7 @@ void tcpserverstate_set_turnsent_callback(void *s, NewTurnCallback cb)
 
 
 //-----------------------------------------------------------------------------
-NetworkType *new_tcp_server_state(uint32_t *ticks)
+NetworkType *new_tcp_server_state(float *ticks)
 {
 	glfwInit();
 	
