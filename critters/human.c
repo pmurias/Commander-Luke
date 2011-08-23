@@ -6,6 +6,7 @@
 #include "iso.h"
 #include "critter.h"
 #include "rand.h"
+#include "ai.h"
 
 #define CRI_IDLE 0
 #define CRI_RUNNING 1
@@ -33,6 +34,8 @@ typedef struct {
 	float hp;	
 
 	int anim;
+
+	void (*ai)(Critter* c);
 } Human;
 
 //-----------------------------------------------------------------------------
@@ -65,6 +68,13 @@ static void tick(Critter * c)
 }
 
 //-----------------------------------------------------------------------------
+static void think(Critter * c)
+{	
+	Human *cri = (Human *) c;	
+	cri->ai(c);
+}
+
+//-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
 {
 	Human *cri = (Human *) c;
@@ -85,18 +95,6 @@ static void draw(Critter * c, float time_delta)
 	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);
 }
 
-//-----------------------------------------------------------------------------
-static void think(Critter * c)
-{
-	Human *cri = (Human *) c;
-	if (cri->state == CRI_IDLE) {
-		Netcmd_MoveCritter command;
-		command.header.type = NETCMD_MOVECRITTER;
-		command.move_x = 50+(rand_rand()%5000)/100.0;
-		command.move_y = 50+(rand_rand()%5000)/100.0;
-		c->vtable->order(c,(Netcmd*) &command);
-	}
-}
 
 //-----------------------------------------------------------------------------
 static void damage(Critter * c, float amount)
@@ -149,10 +147,24 @@ static void get_viewpoint(Critter * c, float *x, float *y)
 }
 
 //-----------------------------------------------------------------------------
-float get_hp(Critter * c)
+static float get_hp(Critter * c)
 {
 	Human *cri = (Human *) c;
         return cri->hp;
+}
+
+//-----------------------------------------------------------------------------
+static float get_velocity(Critter * c)
+{
+	Human *cri = (Human *) c;
+        return cri->velocity;
+}
+
+//-----------------------------------------------------------------------------
+static void set_ai(Critter * c,void (*ai)(Critter*))
+{
+	Human *cri = (Human *) c;
+	cri->ai = ai;
 }
 
 //-----------------------------------------------------------------------------
@@ -168,6 +180,8 @@ void human_init_vtable()
 	vtable.inflate = inflate;
 	vtable.get_viewpoint = get_viewpoint;
 	vtable.get_hp = get_hp;
+	vtable.get_velocity = get_velocity;
+	vtable.set_ai = set_ai;
 }
 
 //-----------------------------------------------------------------------------
@@ -184,5 +198,6 @@ Critter *new_human(float x, float y,int anim)
 	h->anim_time = 0;
 	h->hp = 100;	
 	h->anim = anim;
+	h->ai = ai_noop;
 	return (Critter *) h;
 }

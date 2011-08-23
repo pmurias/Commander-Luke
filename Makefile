@@ -25,6 +25,7 @@ SOURCES= \
 	tcp_client_state.c \
 	tcp_server_state.c \
 	rand.c \
+	ai.c
 
 # game modules
 SOURCES+= \

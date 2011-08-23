@@ -16,6 +16,7 @@
 #include "iso.h"
 #include "rand.h"
 #include "array.h"
+#include "ai.h"
 
 #include "commands.h"
 #include "camera.h"
@@ -90,10 +91,12 @@ Engine *engine_init()
 	Engine *engine = (Engine*)malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
 	spells = new_ptrarray();
-	monsters = new_ptrarray();
 
-	Critter *anomaly = new_human(51,51,1);
-	ptrarray_add(monsters, anomaly);
+	for (int i=0;i<10;i++) {
+		Critter *anomaly = new_human(51,51,1);
+		anomaly->vtable->set_ai(anomaly,ai_run_around);
+		ptrarray_add(monsters, anomaly);
+	}
 	return engine;
 }
 
@@ -186,9 +189,6 @@ void game_logic_tick(NetworkType *network)
 		free(command);
 	}	
 
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i]->vtable->tick(cri[i]);				
-	}		
 	for (int i = 0; i < spells->count; i++) {
 		Spell *spell = (Spell *)ptrarray(spells)[i];
 		spell->vtable->tick(&spell);
@@ -316,7 +316,6 @@ void client_loop(NetworkType * network)
 		draw_tilemap(engine->map, camera, g_tileset);
 
 		for (int i = 0; i < MAX_CLIENTS; i++) {
-			cri[i]->vtable->draw(cri[i], window_frame_time());
 			if (active[i]) {
 				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
 				lights[i]->range = 2;
@@ -428,9 +427,12 @@ void system_startup()
 	human_init_vtable();
 	blurred_init_vtable();
 	flare_init_vtable();
+
+	monsters = new_ptrarray();
 	
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		cri[i] = new_human(50, 50,0);
+		ptrarray_add(monsters, cri[i]);
 	}
 }
 

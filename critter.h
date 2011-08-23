@@ -24,10 +24,12 @@ struct CritterVTable {
   void (*get_viewpoint)(Critter* critter,float *x,float *y);
   void (*damage)(Critter*,float hp);
   float (*get_hp)(Critter*);
+  float (*get_velocity)(Critter*);
+  void (*set_ai)(Critter*,void (*think)(Critter*));
 };
 
 //HACK
-#define MAX_CLIENTS 20
-extern Critter *cri[MAX_CLIENTS];
+#include "array.h"
+extern Array *monsters;
 
 #endif
