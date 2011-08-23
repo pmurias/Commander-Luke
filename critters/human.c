@@ -5,9 +5,13 @@
 
 #include "iso.h"
 #include "critter.h"
+#include "rand.h"
 
 #define CRI_IDLE 0
 #define CRI_RUNNING 1
+
+static char* idle_anim[] = {"Nolty.Idle","Anomaly.Idle"};
+static char* running_anim[] = {"Nolty.Running","Anomaly.Running"};
 
 typedef struct {
 	CRITTER_BASE;
@@ -27,6 +31,8 @@ typedef struct {
 	float move_y;
 
 	float hp;	
+
+	int anim;
 } Human;
 
 //-----------------------------------------------------------------------------
@@ -71,17 +77,25 @@ static void draw(Critter * c, float time_delta)
 		return;
 	}
 	if (cri->state == CRI_IDLE) {
-		anim = isoanim_get("Nolty.Idle");
+		anim = isoanim_get(idle_anim[cri->anim]);
 	} else if (cri->state == CRI_RUNNING) {
-		anim = isoanim_get("Nolty.Running");
+		anim = isoanim_get(running_anim[cri->anim]);
 	}
 
 	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);
 }
 
 //-----------------------------------------------------------------------------
-static void think(Critter * critter)
+static void think(Critter * c)
 {
+	Human *cri = (Human *) c;
+	if (cri->state == CRI_IDLE) {
+		Netcmd_MoveCritter command;
+		command.header.type = NETCMD_MOVECRITTER;
+		command.move_x = 50+(rand_rand()%5000)/100.0;
+		command.move_y = 50+(rand_rand()%5000)/100.0;
+		c->vtable->order(c,(Netcmd*) &command);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -157,7 +171,7 @@ void human_init_vtable()
 }
 
 //-----------------------------------------------------------------------------
-Critter *new_human(float x, float y)
+Critter *new_human(float x, float y,int anim)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
 	h->vtable = &vtable;	
@@ -169,5 +183,6 @@ Critter *new_human(float x, float y)
 	h->state = CRI_IDLE;
 	h->anim_time = 0;
 	h->hp = 100;	
+	h->anim = anim;
 	return (Critter *) h;
 }

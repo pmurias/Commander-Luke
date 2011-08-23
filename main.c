@@ -32,6 +32,7 @@ Critter *cri[MAX_CLIENTS];
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
 Array *spells;
+Array *monsters;
 Str *logins[MAX_CLIENTS];
 uint32_t ticks;
 char *login;
@@ -86,8 +87,13 @@ void usage()
 
 Engine *engine_init()
 {	
-	Engine *engine = malloc(sizeof(Engine));
+	Engine *engine = (Engine*)malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
+	spells = new_ptrarray();
+	monsters = new_ptrarray();
+
+	Critter *anomaly = new_human(51,51,1);
+	ptrarray_add(monsters, anomaly);
 	return engine;
 }
 
@@ -107,6 +113,7 @@ void load_assets()
 	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
 
 	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
+	blit_load_spritesheet_split("./data/Anomaly.png", "./data/Anomaly.txt");
 	blit_load_spritesheet("./data/blurred.png", "./data/blurred.txt");
 	
 	blit_load_sprite("./data/flare.png")->blend_mode = BLEND_ADD;	
@@ -119,6 +126,11 @@ void load_assets()
 	isoanim_set_center(isoanim_get("Nolty.Idle"), 64, 20);
 	isoanim_build("Nolty.Running", 15, 0.03);
 	isoanim_set_center(isoanim_get("Nolty.Running"), 64, 20);
+
+	isoanim_build("Anomaly.Idle", 10, 0.3);
+	isoanim_set_center(isoanim_get("Anomaly.Idle"), 64, 20);
+	isoanim_build("Anomaly.Running", 15, 0.03);
+	isoanim_set_center(isoanim_get("Anomaly.Running"), 64, 20);
 	printf("OK\n");
 }
 
@@ -185,6 +197,14 @@ void game_logic_tick(NetworkType *network)
 			i--;
 		}				
 	}
+	for (int i = 0; i < monsters->count; i++) {
+		Critter *monster = (Critter *)ptrarray(monsters)[i];
+		monster->vtable->think(monster);
+	}
+	for (int i = 0; i < monsters->count; i++) {
+		Critter *monster = (Critter *)ptrarray(monsters)[i];
+		monster->vtable->tick(monster);
+	}
 }
 
 NetworkType *network_type;
@@ -217,7 +237,6 @@ void client_loop(NetworkType * network)
 		lights[i]->x = 50;
 		lights[i]->y = 50;
 	}
-	spells = new_ptrarray();
 	
 	IsoLight *light = new_isolight();
 	light->r = 1;
@@ -304,6 +323,11 @@ void client_loop(NetworkType * network)
 			} else {
 				lights[i]->range = 0;
 			}
+		}
+
+		for (int i = 0; i < monsters->count; i++) {
+			Critter *monster = (Critter *)ptrarray(monsters)[i];
+			monster->vtable->draw(monster, window_frame_time());
 		}
 		for (int i = 0; i < spells->count; i++) {
 			Spell *spell = (Spell *)ptrarray(spells)[i];
@@ -406,7 +430,7 @@ void system_startup()
 	flare_init_vtable();
 	
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_human(50, 50);
+		cri[i] = new_human(50, 50,0);
 	}
 }
 
