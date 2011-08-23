@@ -16,7 +16,6 @@ typedef struct {
 
 struct CritterVTable {
   void (*draw)(Critter* critter,float time_delta); // The critter displays itself
-  void (*think)(Critter* critter); // The critter AI gives itself orders
   void (*tick)(Critter* critter); // The critter update it's state: walks, shoots etc.
   void (*order)(Critter* critter,Netcmd* command); // Orders the critter to execute command
   void (*deflate)(Critter *critter, void** buf, uint32_t *size);

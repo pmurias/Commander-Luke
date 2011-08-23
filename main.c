@@ -199,10 +199,6 @@ void game_logic_tick(NetworkType *network)
 	}
 	for (int i = 0; i < monsters->count; i++) {
 		Critter *monster = (Critter *)ptrarray(monsters)[i];
-		monster->vtable->think(monster);
-	}
-	for (int i = 0; i < monsters->count; i++) {
-		Critter *monster = (Critter *)ptrarray(monsters)[i];
 		monster->vtable->tick(monster);
 	}
 }

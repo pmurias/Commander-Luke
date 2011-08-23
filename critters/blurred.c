@@ -71,9 +71,6 @@ static void draw(Critter * c, float time_delta)
 
 }
 
-static void think(Critter * critter)
-{
-}
 
 static void order(Critter * c, Netcmd * command)
 {
@@ -101,7 +98,6 @@ void blurred_init_vtable()
 {
 	vtable = malloc(sizeof(CritterVTable));
 	vtable->tick = tick;
-	vtable->think = think;
 	vtable->order = order;
 	vtable->draw = draw;
 	vtable->get_viewpoint = get_viewpoint;

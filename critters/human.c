@@ -42,6 +42,8 @@ typedef struct {
 static void tick(Critter * c)
 {	
 	Human *cri = (Human *) c;	
+	
+	cri->ai(c);
 
 	if (cri->hp <= 0) {
 		return;
@@ -67,12 +69,6 @@ static void tick(Critter * c)
 	}	
 }
 
-//-----------------------------------------------------------------------------
-static void think(Critter * c)
-{	
-	Human *cri = (Human *) c;	
-	cri->ai(c);
-}
 
 //-----------------------------------------------------------------------------
 static void draw(Critter * c, float time_delta)
@@ -172,7 +168,6 @@ static CritterVTable vtable;
 void human_init_vtable()
 {	
 	vtable.tick = tick;
-	vtable.think = think;
 	vtable.order = order;
 	vtable.draw = draw;
 	vtable.damage = damage;
