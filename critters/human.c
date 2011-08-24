@@ -15,14 +15,10 @@ static char* idle_anim[] = {"Nolty.Idle","Anomaly.Idle"};
 static char* running_anim[] = {"Nolty.Running","Anomaly.Running"};
 
 typedef struct {
-	CRITTER_BASE;
 	float x;
 	float y;
 
 	float velocity;
-
-	float face_x;
-	float face_y;
 
 	float anim_time;
 
@@ -31,7 +27,15 @@ typedef struct {
 	float move_x;
 	float move_y;
 
-	float hp;	
+	float hp;
+} HumanCore;
+
+typedef struct {
+	CRITTER_BASE;
+	HumanCore c;
+	
+	float face_x;
+	float face_y;
 
 	int anim;
 
@@ -45,27 +49,27 @@ static void tick(Critter * c)
 	
 	cri->ai(c);
 
-	if (cri->hp <= 0) {
+	if (cri->c.hp <= 0) {
 		return;
 	}
 
-	cri->x += cri->face_x * cri->velocity;
-	cri->y += cri->face_y * cri->velocity;
-	cri->anim_time += 1.0 / 30.0f;
+	cri->c.x += cri->face_x * cri->c.velocity;
+	cri->c.y += cri->face_y * cri->c.velocity;
+	cri->c.anim_time += 1.0 / 30.0f;
 
-	if (cri->state == CRI_RUNNING) {
-		cri->velocity = 0.08;
-		cri->face_x = cri->move_x - cri->x;
-		cri->face_y = cri->move_y - cri->y;
+	if (cri->c.state == CRI_RUNNING) {
+		cri->c.velocity = 0.08;
+		cri->face_x = cri->c.move_x - cri->c.x;
+		cri->face_y = cri->c.move_y - cri->c.y;
 		float len = sqrt(cri->face_x * cri->face_x + cri->face_y * cri->face_y);
 		if (len < 0.08) {
-			cri->state = CRI_IDLE;
+			cri->c.state = CRI_IDLE;
 		}
 		cri->face_x /= len;
 		cri->face_y /= len;		
 	}	
-	if (cri->state == CRI_IDLE) {
-		cri->velocity = 0;
+	if (cri->c.state == CRI_IDLE) {
+		cri->c.velocity = 0;
 	}	
 }
 
@@ -75,20 +79,20 @@ static void draw(Critter * c, float time_delta)
 {
 	Human *cri = (Human *) c;
 	IsoAnim *anim = NULL;
-	if (cri->hp <= 0) {
+	if (cri->c.hp <= 0) {
 		Sprite *s = blit_get_sprite("Blurred_001");
 		float wx, wy;
-		iso_world2screen(cri->x, cri->y, &wx, &wy);
+		iso_world2screen(cri->c.x, cri->c.y, &wx, &wy);
 		blit_sprite(s, wx - 50, wy - 50);		
 		return;
 	}
-	if (cri->state == CRI_IDLE) {
+	if (cri->c.state == CRI_IDLE) {
 		anim = isoanim_get(idle_anim[cri->anim]);
-	} else if (cri->state == CRI_RUNNING) {
+	} else if (cri->c.state == CRI_RUNNING) {
 		anim = isoanim_get(running_anim[cri->anim]);
 	}
 
-	isoanim_blit_frame(anim, cri->x, cri->y, cri->anim_time, cri->face_x, cri->face_y);
+	isoanim_blit_frame(anim, cri->c.x, cri->c.y, cri->c.anim_time, cri->face_x, cri->face_y);
 }
 
 
@@ -96,7 +100,7 @@ static void draw(Critter * c, float time_delta)
 static void damage(Critter * c, float amount)
 {
 	Human *cri = (Human *) c;
-	cri->hp -= amount;	
+	cri->c.hp -= amount;	
 }
 
 //-----------------------------------------------------------------------------
@@ -106,54 +110,53 @@ static void order(Critter * c, Netcmd * command)
 	switch (command->header.type) {
 	case NETCMD_MOVECRITTER:{
 			Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;
-			cri->state = CRI_RUNNING;
-			cri->move_x = move->move_x;
-			cri->move_y = move->move_y;
+			cri->c.state = CRI_RUNNING;
+			cri->c.move_x = move->move_x;
+			cri->c.move_y = move->move_y;
 			break;
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-static void deflate(Critter *c, void **buf, uint32_t *size)
+static void serialize(Critter *c, void **buf, uint32_t *size)
 {
 	Human *cri = (Human*)c;
-	*buf = malloc(12);
-	memcpy(*buf, &cri->x, 4);
-	memcpy(*buf + 4, &cri->y, 4);
-	memcpy(*buf + 8, &cri->hp, 4);
-	*size = 12;	
+	*buf = malloc(sizeof(HumanCore));
+	memcpy(*buf, &cri->c, sizeof(HumanCore));
+	*size = sizeof(HumanCore);	
 }
 
 //-----------------------------------------------------------------------------
-static void inflate(Critter *c, void *buf, uint32_t size)
+static void deserialize(Critter *c, void *buf, uint32_t size)
 {
 	Human *cri = (Human*)c;
-	memcpy(&cri->x, buf, 4);
-	memcpy(&cri->y, buf+4, 4);
-	memcpy(&cri->hp, buf+8, 4);
+	memcpy(&cri->c, buf, sizeof(HumanCore)); 	
+	
+	cri->face_x = cri->c.move_x - cri->c.x;
+	cri->face_y = cri->c.move_y - cri->c.y;
 }
 
 //-----------------------------------------------------------------------------
 static void get_viewpoint(Critter * c, float *x, float *y)
 {
 	Human *cri = (Human *) c;
-	*x = cri->x;
-	*y = cri->y;
+	*x = cri->c.x;
+	*y = cri->c.y;
 }
 
 //-----------------------------------------------------------------------------
 static float get_hp(Critter * c)
 {
 	Human *cri = (Human *) c;
-        return cri->hp;
+	return cri->c.hp;
 }
 
 //-----------------------------------------------------------------------------
 static float get_velocity(Critter * c)
 {
 	Human *cri = (Human *) c;
-        return cri->velocity;
+	return cri->c.velocity;
 }
 
 //-----------------------------------------------------------------------------
@@ -171,8 +174,8 @@ void human_init_vtable()
 	vtable.order = order;
 	vtable.draw = draw;
 	vtable.damage = damage;
-	vtable.deflate = deflate;
-	vtable.inflate = inflate;
+	vtable.serialize = serialize;
+	vtable.deserialize = deserialize;
 	vtable.get_viewpoint = get_viewpoint;
 	vtable.get_hp = get_hp;
 	vtable.get_velocity = get_velocity;
@@ -180,18 +183,24 @@ void human_init_vtable()
 }
 
 //-----------------------------------------------------------------------------
+uint32_t human_pack_size(void)
+{
+	return sizeof(HumanCore);
+}
+
+//-----------------------------------------------------------------------------
 Critter *new_human(float x, float y,int anim)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
 	h->vtable = &vtable;	
-	h->x = x;
-	h->y = y;
-	h->velocity = 0;
+	h->c.x = x;
+	h->c.y = y;
+	h->c.velocity = 0;
 	h->face_x = 0;
 	h->face_y = 1;
-	h->state = CRI_IDLE;
-	h->anim_time = 0;
-	h->hp = 100;	
+	h->c.state = CRI_IDLE;
+	h->c.anim_time = 0;
+	h->c.hp = 100;	
 	h->anim = anim;
 	h->ai = ai_noop;
 	return (Critter *) h;

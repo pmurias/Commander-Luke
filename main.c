@@ -150,7 +150,7 @@ void client_snapshot_callback(void *buf, uint32_t size)
 			logins[i] = new_str();
 		}		
 		str_set(logins[i], (char*)buf+i*15);
-		cri[i]->vtable->inflate(cri[i], buf+300+i*12, 12);
+		cri[i]->vtable->deserialize(cri[i], buf+300+i*human_pack_size(), human_pack_size());
 	}	
 }
 
@@ -365,20 +365,25 @@ void tcpclient_loop(NetworkType *network)
 //------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 {	
-	*buf = malloc(MAX_CLIENTS*(15+12));
-	memset(*buf, 0, MAX_CLIENTS*15);	
+	*size = MAX_CLIENTS*15;
+	*buf = malloc(*size);	
+	memset(*buf, 0, *size);
+	/* logins */	
 	for (int i = 0; i < MAX_CLIENTS; i++) {		
 		if (logins[i] != NULL) {								
 			memcpy(*buf + i*15, logins[i]->val, logins[i]->len);			
-		}
-		
-		void *deflate;
-		uint32_t size;
-		cri[i]->vtable->deflate(cri[i], &deflate, &size);
-		memcpy(*buf+300+i*12, deflate, 12);
-		free(deflate);
+		}				
 	}	
-	*size = MAX_CLIENTS*(15+12);	
+	/* player data */
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		void *pack;
+		uint32_t packsize;
+		cri[i]->vtable->serialize(cri[i], &pack, &packsize);				
+		*buf = realloc(*buf, *size + packsize);
+		memcpy(*buf+*size, pack, packsize);
+		*size += packsize;
+		free(pack);
+	}		
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
