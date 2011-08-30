@@ -38,17 +38,19 @@ static void tick(Spell ** s)
 	if (len < spell->velocity) {
 		if (!spell->exploded) {
 			spell->exploded = 1;
-			for (int i = 0; i < monsters->count; i++) {
-				float x, y;
-				Critter *monster = (Critter *)ptrarray(monsters)[i];
-
-				monster->vtable->get_viewpoint(monster, &x, &y);
-
-				float fx = x - spell->x;
-				float fy = y - spell->y;
-				float len = sqrt(fx * fx + fy * fy);
-				if (len < 0.5)
-					monster->vtable->damage(monster, 10);
+			for (int i = 0; i < critters->size; i++) {
+				if (critters->keys[i]) {
+					Critter *c = critters->data[i];
+					float x, y;					
+	
+					c->vtable->get_viewpoint(c, &x, &y);
+	
+					float fx = x - spell->x;
+					float fy = y - spell->y;
+					float len = sqrt(fx * fx + fy * fy);
+					if (len < 0.75)
+						c->vtable->damage(c, 10);
+				}
 			}
 		}
 		spell->angle += 10;

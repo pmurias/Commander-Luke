@@ -87,3 +87,4 @@ void str_append(Str *dst, Str *str)
 {
 	str_nappend(dst, str->val, str->len);
 }
+

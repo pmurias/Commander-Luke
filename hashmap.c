@@ -146,3 +146,128 @@ void hashmap_resize(HashMap *hm, uint32_t new_size)
 	free(oldData);
 	free(oldKeys);
 }
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+uint32_t intmap_h1(uint32_t a)
+{
+	a -= (a<<6);
+	a ^= (a>>17);
+	a -= (a<<9);
+	a ^= (a<<4);
+	a -= (a<<3);
+	a ^= (a<<10);
+	a ^= (a>>15);
+	return a;
+}
+
+//-----------------------------------------------------------------------------
+IntMap *new_intmap(void)
+{
+	IntMap *im = malloc(sizeof(IntMap));
+	im->size = HASHMAP_MIN_SIZE;
+	im->free = im->size;
+	im->keys = malloc(im->size * sizeof(uint32_t));
+	im->data = malloc(im->size * sizeof(void*));
+	memset(im->keys, 0, im->size * sizeof(uint32_t));
+	return im;
+}
+
+//-----------------------------------------------------------------------------
+static uint32_t _intmap_reloc(IntMap *im, uint32_t key, void *elem)
+{
+	uint32_t h, k, i = intmap_h1(key) % im->size;
+	for (k=0; k<im->size; ++k) {
+		h = (i+k) % im->size;
+		if (im->keys[h] == 0) {
+			im->data[h] = elem;
+			im->keys[h] = key;			
+			return 1;
+		}
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+static void intmap_resize(IntMap *im, uint32_t new_size)
+{
+	uint32_t i, oldSize = im->size;
+	void **oldData = im->data;
+	uint32_t *oldKeys = im->keys;
+
+	im->size = new_size;
+	im->data = malloc(im->size * sizeof(void*));
+	im->keys = malloc(im->size * sizeof(uint32_t));
+	im->free += (new_size - oldSize);
+
+	memset(im->keys, 0, im->size * sizeof(uint32_t));
+	
+	for (i=0; i<oldSize; ++i) {
+		if (oldKeys[i] != 0) {
+			_intmap_reloc(im, oldKeys[i], oldData[i]);
+		}		
+	}
+
+	free(oldData);
+	free(oldKeys);
+}
+
+//-----------------------------------------------------------------------------
+static inline void _intmap_write_elem(IntMap *im, uint32_t h, uint32_t key, void *elem)
+{
+	im->data[h] = elem;
+	im->keys[h] = key;
+	im->free--;
+	if (im->free <= im->size>>2)
+		intmap_resize(im, im->size << 2);	
+}
+
+//-----------------------------------------------------------------------------
+int intmap_ins(IntMap *im, uint32_t key, void *elem)
+{
+	uint32_t h, k, i = intmap_h1(key) % im->size;
+	for (k=0; k<im->size; ++k) {
+		h = (i+k) % im->size;
+		if (im->keys[h] == 0) {
+			_intmap_write_elem(im, h, key, elem);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+void *intmap_find(IntMap *im, uint32_t key)
+{
+	uint32_t h, k, i = intmap_h1(key) % im->size;
+	for (k=0; k<im->size; ++k) {
+		h = (i+k) % im->size;
+		if (im->keys[h] == key) {
+			return im->data[h];
+		}
+	}
+	return NULL;
+}
+
+//-----------------------------------------------------------------------------
+void intmap_rem(IntMap *im, uint32_t key)
+{
+	uint32_t h, k, i = intmap_h1(key) % im->size;
+	for (k=0; k<im->size; ++k) {
+		h = (i+k) % im->size;
+		if (im->keys[h] == key) {
+			im->keys[h] = 0;
+			im->free++;
+			if (im->free > 3 * (im->size >> 2) && im->size > HASHMAP_MIN_SIZE) {
+				intmap_resize(im, im->size >> 1);
+			}
+			return;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+

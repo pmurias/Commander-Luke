@@ -39,7 +39,7 @@ typedef struct {
 
 	int anim;
 
-	void (*ai)(Critter* c);
+	AiFunc ai;	
 } Human;
 
 //-----------------------------------------------------------------------------
@@ -128,13 +128,20 @@ static void serialize(Critter *c, void **buf, uint32_t *size)
 }
 
 //-----------------------------------------------------------------------------
+// rebuilds whole struct from struct's core
+void human_rebuild(Critter *c)
+{			
+	Human *cri = (Human *)c;
+	cri->face_x = cri->c.move_x - cri->c.x;
+	cri->face_y = cri->c.move_y - cri->c.y;
+}
+
+//-----------------------------------------------------------------------------
 static void deserialize(Critter *c, void *buf, uint32_t size)
 {
 	Human *cri = (Human*)c;
-	memcpy(&cri->c, buf, sizeof(HumanCore)); 	
-	
-	cri->face_x = cri->c.move_x - cri->c.x;
-	cri->face_y = cri->c.move_y - cri->c.y;
+	memcpy(&cri->c, buf, sizeof(HumanCore));
+	human_rebuild(c);
 }
 
 //-----------------------------------------------------------------------------
@@ -160,7 +167,7 @@ static float get_velocity(Critter * c)
 }
 
 //-----------------------------------------------------------------------------
-static void set_ai(Critter * c,void (*ai)(Critter*))
+static void set_ai(Critter * c, AiFunc ai)
 {
 	Human *cri = (Human *) c;
 	cri->ai = ai;
@@ -192,16 +199,17 @@ uint32_t human_pack_size(void)
 Critter *new_human(float x, float y,int anim)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
-	h->vtable = &vtable;	
+	h->vtable = &vtable;
 	h->c.x = x;
 	h->c.y = y;
 	h->c.velocity = 0;
-	h->face_x = 0;
-	h->face_y = 1;
 	h->c.state = CRI_IDLE;
 	h->c.anim_time = 0;
-	h->c.hp = 100;	
+	h->c.hp = 100;
+	
+	h->face_x = 0;
+	h->face_y = 1;
 	h->anim = anim;
 	h->ai = ai_noop;
-	return (Critter *) h;
+	return (Critter *)h;
 }

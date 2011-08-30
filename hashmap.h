@@ -22,5 +22,18 @@ void hashmap_rem(HashMap *hm, Str *key);
 void hashmap_resize(HashMap *hm, uint32_t new_siz);
 void hashmap_print(HashMap *hm);
 
+typedef struct
+{	
+	uint32_t size;
+	uint32_t free;
+	uint32_t *keys;
+	void **data;
+} IntMap;
+
+IntMap *new_intmap(void);
+int intmap_ins(IntMap *im, uint32_t key, void *elem);
+void intmap_rem(IntMap *im, uint32_t key);
+void *intmap_find(IntMap *im, uint32_t key);
+
 
 #endif // __HASHMAP_H__

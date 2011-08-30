@@ -29,14 +29,15 @@
 #define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
 #define MAX_CLIENTS 20
-Critter *cri[MAX_CLIENTS];
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
 Array *spells;
-Array *monsters;
 Str *logins[MAX_CLIENTS];
 uint32_t ticks;
 char *login;
+
+IntMap *critters;
+uint32_t uid = 100;
 
 typedef struct {
 	int width;
@@ -94,8 +95,8 @@ Engine *engine_init()
 
 	for (int i=0;i<10;i++) {
 		Critter *anomaly = new_human(51,51,1);
-		anomaly->vtable->set_ai(anomaly,ai_run_around);
-		ptrarray_add(monsters, anomaly);
+		anomaly->vtable->set_ai(anomaly,ai_run_around);		
+		intmap_ins(critters, uid++, anomaly);
 	}
 	return engine;
 }
@@ -150,7 +151,8 @@ void client_snapshot_callback(void *buf, uint32_t size)
 			logins[i] = new_str();
 		}		
 		str_set(logins[i], (char*)buf+i*15);
-		cri[i]->vtable->deserialize(cri[i], buf+300+i*human_pack_size(), human_pack_size());
+		Critter *c = intmap_find(critters, i+1);
+		c->vtable->deserialize(c, buf+300+i*human_pack_size(), human_pack_size());
 	}	
 }
 
@@ -166,7 +168,8 @@ void game_logic_tick(NetworkType *network)
 		case NETCMD_MOVECRITTER:{
 				Netcmd_MoveCritter *move = (Netcmd_MoveCritter *) command;				
 				active[move->sender] = 1;
-				cri[move->sender]->vtable->order(cri[move->sender], command);
+				Critter *c = intmap_find(critters, move->sender+1);
+				c->vtable->order(c, command);
 				break;
 			}
 		case NETCMD_SPAWNFLARE:{
@@ -197,9 +200,11 @@ void game_logic_tick(NetworkType *network)
 			i--;
 		}				
 	}
-	for (int i = 0; i < monsters->count; i++) {
-		Critter *monster = (Critter *)ptrarray(monsters)[i];
-		monster->vtable->tick(monster);
+	for (int i = 0; i < critters->size; i++) {
+		if (critters->keys[i]) {
+			Critter *c = critters->data[i];
+			c->vtable->tick(c);
+		}
 	}
 }
 
@@ -281,8 +286,8 @@ void client_loop(NetworkType * network)
 				cmd.header.type = NETCMD_SPAWNFLARE;
 				cmd.sender = network->get_id(network->state);
 
-				Critter *player = cri[cmd.sender];
-				float hp = player->vtable->get_hp(player);				
+				Critter *player = intmap_find(critters, cmd.sender+1);
+				float hp = player->vtable->get_hp(player);
 
 				if (hp >= 1) {
 					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
@@ -303,7 +308,7 @@ void client_loop(NetworkType * network)
 			}
 			network->logic_tick(network->state);
 																	
-			Critter *c = cri[network->get_id(network->state)];			
+			Critter *c = intmap_find(critters, 1+network->get_id(network->state));			
 			c->vtable->get_viewpoint(c, &camera->x, &camera->y);
 						
 			window_poll_events();
@@ -313,31 +318,35 @@ void client_loop(NetworkType * network)
 
 		for (int i = 0; i < MAX_CLIENTS; i++) {
 			if (active[i]) {
-				cri[i]->vtable->get_viewpoint(cri[i], &lights[i]->x, &lights[i]->y);
+				Critter *c = intmap_find(critters, i+1);
+				c->vtable->get_viewpoint(c, &lights[i]->x, &lights[i]->y);
 				lights[i]->range = 2;
 			} else {
 				lights[i]->range = 0;
 			}
 		}
 
-		for (int i = 0; i < monsters->count; i++) {
-			Critter *monster = (Critter *)ptrarray(monsters)[i];
-			monster->vtable->draw(monster, window_frame_time());
+		for (int i = 0; i < critters->size; i++) {
+			if (critters->keys[i]) {
+				Critter *c = critters->data[i];
+				c->vtable->draw(c, window_frame_time());
+			}
 		}
 		for (int i = 0; i < spells->count; i++) {
 			Spell *spell = (Spell *)ptrarray(spells)[i];
 			spell->vtable->draw(spell, window_frame_time());
 		}
 
-		Critter *c = cri[network->get_id(network->state)];
+		Critter *c = intmap_find(critters, network->get_id(network->state)+1);
 		int hp = c->vtable->get_hp(c);
 
 		font_print(font_get("Jura"), 10, 10, 1.0, "HP: %d\nFPS: %d", hp, (int)round(1.0 / window_frame_time()));
 		for (int i = 0; i< MAX_CLIENTS; i++) {
 			if (logins[i]!= NULL) {
 				float x, y, sx, sy;
-				cri[i]->vtable->get_viewpoint(cri[i], &x, &y);
-				hp = cri[i]->vtable->get_hp(cri[i]);
+				Critter *c = intmap_find(critters, i+1);
+				c->vtable->get_viewpoint(c, &x, &y);
+				hp = c->vtable->get_hp(c);
 				iso_world2screen(x, y, &sx, &sy);				
 				int width = font_str_width(font_get("Jura"), 1.0, "%s\n%d", logins[i]->val, hp);
 				font_print(font_get("Jura"), sx - (width*0.5), sy, 1.0, "%s\n%d", logins[i]->val, hp);
@@ -378,7 +387,8 @@ void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		void *pack;
 		uint32_t packsize;
-		cri[i]->vtable->serialize(cri[i], &pack, &packsize);				
+		Critter *c = intmap_find(critters, i+1);
+		c->vtable->serialize(c, &pack, &packsize);				
 		*buf = realloc(*buf, *size + packsize);
 		memcpy(*buf+*size, pack, packsize);
 		*size += packsize;
@@ -428,12 +438,12 @@ void system_startup()
 	human_init_vtable();
 	blurred_init_vtable();
 	flare_init_vtable();
-
-	monsters = new_ptrarray();
+	
+	critters = new_intmap();
 	
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		cri[i] = new_human(50, 50,0);
-		ptrarray_add(monsters, cri[i]);
+		Critter *c = new_human(50, 50,0);			
+		intmap_ins(critters, i+1, c);
 	}
 }
 

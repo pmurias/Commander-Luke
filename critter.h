@@ -3,6 +3,7 @@
 
 
 #include "commands.h"
+#include "ai.h"
 
 #define CRITTER_BASE \
 	CritterVTable* vtable;
@@ -10,7 +11,7 @@
 struct CritterVTable; 
 typedef struct CritterVTable CritterVTable;
 
-typedef struct {
+typedef struct Critter {
     CRITTER_BASE
 } Critter ;
 
@@ -24,11 +25,11 @@ struct CritterVTable {
   void (*damage)(Critter*,float hp);
   float (*get_hp)(Critter*);
   float (*get_velocity)(Critter*);
-  void (*set_ai)(Critter*,void (*think)(Critter*));
+  void (*set_ai)(Critter*, AiFunc ai);
 };
 
 //HACK
-#include "array.h"
-extern Array *monsters;
+#include "hashmap.h"
+extern IntMap *critters;
 
 #endif
