@@ -447,7 +447,7 @@ void system_startup()
 	}
 	
 	/* npcs */
-	for (int i=0;i<1;i++) {
+	for (int i=0;i<10;i++) {
 		Critter *anomaly = new_human(51,51,1);
 		anomaly->vtable->set_ai(anomaly, AI_RUN_AROUND);		
 		intmap_ins(critters, uid++, anomaly);

@@ -69,7 +69,7 @@ static void tick(Critter * c)
 			cri->c.state = CRI_IDLE;
 		}
 		cri->face_x /= len;
-		cri->face_y /= len;		
+		cri->face_y /= len;
 	}	
 	if (cri->c.state == CRI_IDLE) {
 		cri->c.velocity = 0;
@@ -137,6 +137,9 @@ void human_rebuild(Critter *c)
 	Human *cri = (Human *)c;
 	cri->face_x = cri->c.move_x - cri->c.x;
 	cri->face_y = cri->c.move_y - cri->c.y;
+	float len = sqrt(cri->face_x * cri->face_x + cri->face_y * cri->face_y);		
+	cri->face_x /= len;
+	cri->face_y /= len;
 	
 	cri->vtable->set_ai((Critter*)cri, cri->c.aitype);	
 }
