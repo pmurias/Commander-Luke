@@ -38,6 +38,8 @@ typedef struct
 	NewTurnCallback newturn_callback;
 } TcpServerState;
 
+static float avg_ticks = -1;
+
 //-----------------------------------------------------------------------------
 static void tick(void *d)
 {
@@ -61,7 +63,7 @@ static void tick(void *d)
 	for (int i = 0; i< MAX_CONNECTIONS; i++) {
 		none_waits &= !(state->connections[i].active && state->connections[i].waiting);				
 	}
-	
+		
 	if (none_waits) {						
 		float curr_time = glfwGetTime();		
 		float framesf = ((curr_time-state->last_send_time) / state->time_step);
@@ -72,7 +74,14 @@ static void tick(void *d)
 		if (state->ticks_fract>1.0) {
 			state->ticks_fract--;
 			framesd++;
-		}				
+		}
+		
+		if (avg_ticks < 0) {
+			avg_ticks = framesd;
+		} else {
+			avg_ticks = avg_ticks + (framesd - avg_ticks) * 0.2; 
+		}
+		framesd = floor(avg_ticks);						
 		*state->ticks += framesd;
 		
 		uint32_t data_size = state->bulk_size - 5;
