@@ -411,11 +411,7 @@ void server_loop(NetworkType * network)
 	spells = new_ptrarray();
 	
 	while (1) {
-		network->tick(network->state);
-		//while (ticks) {
-		//	game_logic_tick(network);
-			//ticks--;
-		//}		
+		network->tick(network->state);			
 	}
 }
 

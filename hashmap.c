@@ -270,4 +270,47 @@ void intmap_rem(IntMap *im, uint32_t key)
 }
 
 //-----------------------------------------------------------------------------
+void intmap_serialize(IntMap *im, void (*serializer)(void*,void **,uint32_t*), void **buf, uint32_t *size)
+{
+	*buf = malloc(sizeof(uint32_t));
+	*size = sizeof(uint32_t);
+	uint32_t elem_count = im->size - im->free;
+	memcpy(*buf, &elem_count, sizeof(uint32_t));	
+	
+	void *elembuf;
+	uint32_t elemsize;
+	for (int i=0; i<im->size; i++) {
+		if (im->keys[i]) {
+			void *elem = im->data[i];
+			serializer(elem, &elembuf, &elemsize); 			
+			*buf = realloc(*buf, *size + sizeof(uint32_t) + elemsize);
+			memcpy(*buf + *size, &im->keys[i], sizeof(uint32_t));
+			memcpy(*buf + *size + sizeof(uint32_t), elembuf, elemsize);
+			*size +=  sizeof(uint32_t) + elemsize;
+			free(elembuf);
+		}
+	}	
+}
+
+//-----------------------------------------------------------------------------
+void intmap_deserialize(IntMap *im, uint32_t (*deserializer)(void*,void*), void* (*ctor)(void *), void *buf)
+{
+	uint32_t count;
+	memcpy(&count, buf, sizeof(uint32_t));
+		
+	uint32_t off = sizeof(uint32_t);
+	for (int i=0; i<count; i++) {
+		uint32_t key;
+		memcpy(&key, buf+off, sizeof(uint32_t));
+		off += sizeof(uint32_t);
+		
+		void *elem = intmap_find(im, key);
+		if (elem == NULL) {
+			elem = ctor(buf+off);
+			intmap_ins(im, key, elem);
+		}		
+		off += deserializer(elem, buf+off);		
+	}
+}
+
 

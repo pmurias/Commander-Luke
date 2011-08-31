@@ -95,6 +95,8 @@ static void tick(void *d)
 			}
 		}				
 		state->bulk_size = 9;
+		
+		/* this is thought to be executed very fast in network time scale */
 		state->newturn_callback();
 	}
 }

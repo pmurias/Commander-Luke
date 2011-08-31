@@ -35,5 +35,10 @@ int intmap_ins(IntMap *im, uint32_t key, void *elem);
 void intmap_rem(IntMap *im, uint32_t key);
 void *intmap_find(IntMap *im, uint32_t key);
 
+/* serializer(elem, outbuf, outbuf_size) */
+void intmap_serialize(IntMap *im, void (*serializer)(void*,void **,uint32_t*), void **buf, uint32_t *size);
+/* deserializer(elem, inbuf), returns read data; ctor(inbuf) returns new elem ptr */
+void intmap_deserialize(IntMap *im, uint32_t (*deserializer)(void*,void*), void* (*ctor)(void *), void *buf);
+
 
 #endif // __HASHMAP_H__
