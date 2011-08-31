@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "iso.h"
+#include "serializers.h"
 #include "critter.h"
 #include "rand.h"
 #include "ai.h"
@@ -121,18 +122,10 @@ static void order(Critter * c, Netcmd * command)
 	}
 }
 
-//-----------------------------------------------------------------------------
-static void serialize(Critter *c, void **buf, uint32_t *size)
-{
-	Human *cri = (Human*)c;
-	*buf = malloc(sizeof(HumanCore));
-	memcpy(*buf, &cri->c, sizeof(HumanCore));
-	*size = sizeof(HumanCore);	
-}
 
 //-----------------------------------------------------------------------------
 // rebuilds whole struct from struct's core
-void human_rebuild(Critter *c)
+static void human_rebuild(Critter *c)
 {			
 	Human *cri = (Human *)c;
 	cri->face_x = cri->c.move_x - cri->c.x;
@@ -144,13 +137,10 @@ void human_rebuild(Critter *c)
 	cri->vtable->set_ai((Critter*)cri, cri->c.aitype);	
 }
 
-//-----------------------------------------------------------------------------
-static void deserialize(Critter *c, void *buf, uint32_t size)
-{
-	Human *cri = (Human*)c;
-	memcpy(&cri->c, buf, sizeof(HumanCore));
-	human_rebuild(c);
-}
+GENERIC_CORE_PACK_SIZE(human_pack_size, Human)
+
+GENERIC_CORE_SERIALIZER(Critter, Human)
+GENERIC_CORE_DESERIALIZER(Critter, Human, human_rebuild)
 
 //-----------------------------------------------------------------------------
 static void get_viewpoint(Critter * c, float *x, float *y)
@@ -199,17 +189,18 @@ void human_init_vtable()
 }
 
 //-----------------------------------------------------------------------------
-uint32_t human_pack_size(void)
-{
-	return sizeof(HumanCore);
-}
-
-//-----------------------------------------------------------------------------
-Critter *new_human(float x, float y,int anim)
+Critter* new_human(int gfx)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
 	h->vtable = &vtable;
 	h->c.type = CRITTER_HUMAN;
+	return (Critter *)h;
+}
+
+//-----------------------------------------------------------------------------
+Critter *create_human(int gfx, float x, float y,int anim)
+{
+	Human *h = (Human *) new_human(gfx);
 	h->c.x = x;
 	h->c.y = y;
 	h->c.velocity = 0;
@@ -223,3 +214,5 @@ Critter *new_human(float x, float y,int anim)
 	h->ai = ai_noop;
 	return (Critter *)h;
 }
+
+

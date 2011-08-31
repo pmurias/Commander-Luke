@@ -42,7 +42,7 @@ static void *crit_ctor(void *inbuf)
 	uint8_t type = *(uint8_t*)(inbuf);
 	switch (type) {
 	case CRITTER_HUMAN:				
-		return new_human(0,0,0); // bad! 		
+		return new_human(1); 		
 	default:
 		printf("error: unknown critter type!\n");
 		exit(1);
@@ -50,7 +50,7 @@ static void *crit_ctor(void *inbuf)
 }
 
 //------------------------------------------------------------------------------
-void critters_deserialize(void *buf)
+int critters_deserialize(void *buf)
 {
-	intmap_deserialize(critters, crit_deserializer, crit_ctor, buf);
+	return intmap_deserialize(critters, crit_deserializer, crit_ctor, buf);
 }

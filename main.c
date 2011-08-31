@@ -31,7 +31,6 @@
 #define MAX_CLIENTS 20
 IsoLight *lights[MAX_CLIENTS];
 int active[MAX_CLIENTS];
-Array *spells;
 Str *logins[MAX_CLIENTS];
 uint32_t ticks;
 char *login;
@@ -91,7 +90,6 @@ Engine *engine_init()
 {	
 	Engine *engine = (Engine*)malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
-	spells = new_ptrarray();	
 	return engine;
 }
 
@@ -147,11 +145,14 @@ void client_snapshot_callback(void *buf, uint32_t size)
 		}				
 		str_set(logins[i], (char*)buf+i*15);		
 	}	
+	int off = 300;
 	/* ai_seed */
-	memcpy(&ai_seed, buf+300, 4);
+	memcpy(&ai_seed, buf+off, 4);
+	off += 4;
 	
-	/* critters */
-	critters_deserialize(buf+304);
+	/* critters */	
+	off += critters_deserialize(buf+off);
+	off += spells_deserialize(buf+off);
 }
 
 void game_logic_tick(NetworkType *network)
@@ -172,8 +173,8 @@ void game_logic_tick(NetworkType *network)
 			}
 		case NETCMD_SPAWNFLARE:{
 				Netcmd_SpawnFlare *sf = (Netcmd_SpawnFlare *) command;
-				Spell *flare = new_flare(sf->x, sf->y, sf->target_x, sf->target_y);
-				ptrarray_add(spells, flare);
+				Spell *flare = create_flare(1, sf->x, sf->y, sf->target_x, sf->target_y);
+				intmap_ins(spells, spell_uid++, flare);				
 				break;
 			}
 		case NETCMD_SETLOGIN:{
@@ -190,13 +191,14 @@ void game_logic_tick(NetworkType *network)
 		free(command);
 	}	
 
-	for (int i = 0; i < spells->count; i++) {
-		Spell *spell = (Spell *)ptrarray(spells)[i];
-		spell->vtable->tick(&spell);
-		if (spell == NULL) {
-			ptrarray_remove(spells, i);
-			i--;
-		}				
+	for (int i = 0; i < spells->size; i++) {
+		if (spells->keys[i]) {
+			Spell *spell = (Spell *)spells->data[i];
+			spell->vtable->tick(&spell);
+			if (spell == NULL) {
+				intmap_free_slot(spells, i);				
+			}
+		}
 	}
 	for (int i = 0; i < critters->size; i++) {
 		if (critters->keys[i]) {
@@ -330,9 +332,11 @@ void client_loop(NetworkType * network)
 				c->vtable->draw(c, window_frame_time());
 			}
 		}
-		for (int i = 0; i < spells->count; i++) {
-			Spell *spell = (Spell *)ptrarray(spells)[i];
-			spell->vtable->draw(spell, window_frame_time());
+		for (int i = 0; i < spells->size; i++) {
+			if (spells->keys[i]) {
+				Spell *spell = (Spell *)spells->data[i];
+				spell->vtable->draw(spell, window_frame_time());
+			}
 		}
 
 		Critter *c = intmap_find(critters, network->get_id(network->state)+1);
@@ -388,12 +392,20 @@ void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 	*size += 4;
 	
 	/* critters data */
-	void *critbuf;
-	uint32_t critsize;
-	critters_serialize(&critbuf, &critsize);
-	*buf = realloc(*buf, *size + critsize);
-	memcpy(*buf + *size, critbuf, critsize);
-	*size += critsize;	
+	void *fragbuf;
+	uint32_t fragsize;
+	critters_serialize(&fragbuf, &fragsize);
+	*buf = realloc(*buf, *size + fragsize);
+	memcpy(*buf + *size, fragbuf, fragsize);
+	free(fragbuf);
+	*size += fragsize;	
+	
+	/* spells data */
+	spells_serialize(&fragbuf, &fragsize);
+	*buf = realloc(*buf, *size + fragsize);
+	memcpy(*buf + *size, fragbuf, fragsize);
+	free(fragbuf);
+	*size += fragsize;	
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
@@ -407,8 +419,7 @@ int server_login_callback(void *login, uint8_t cid, uint32_t size)
 
 void server_loop(NetworkType * network)
 {				
-	network_type = network;
-	spells = new_ptrarray();
+	network_type = network;	
 	
 	while (1) {
 		network->tick(network->state);			
@@ -435,16 +446,17 @@ void system_startup()
 	blurred_init_vtable();
 	flare_init_vtable();
 	
+	spells = new_intmap();
 	critters = new_intmap();
 	
 	for (int i = 0; i < MAX_CLIENTS; i++) {
-		Critter *c = new_human(50, 50,0);			
+		Critter *c = create_human(1, 50, 50,0);			
 		intmap_ins(critters, i+1, c);
 	}
 	
 	/* npcs */
 	for (int i=0;i<10;i++) {
-		Critter *anomaly = new_human(51,51,1);
+		Critter *anomaly = create_human(1, 51,51,1);
 		anomaly->vtable->set_ai(anomaly, AI_RUN_AROUND);		
 		intmap_ins(critters, uid++, anomaly);
 	}

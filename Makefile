@@ -32,7 +32,8 @@ SOURCES+= \
 	camera.c \
 	commands.c \
 	ai.c \
-	critter.c
+	critter.c \
+	spell.c
 	
 # critters
 SOURCES+= \
@@ -47,7 +48,7 @@ OBJECTS=$(SOURCES:.c=.o)
 
 bench: benchmark.o socket.o str.o
 	$(CC) benchmark.o socket.o str.o $(CLIBS) -o benchmark
-	
+
 luke: $(OBJECTS)
 	$(CC) $(OBJECTS) $(CLIBS) -o luke
 

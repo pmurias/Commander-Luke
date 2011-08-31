@@ -253,14 +253,20 @@ void *intmap_find(IntMap *im, uint32_t key)
 }
 
 //-----------------------------------------------------------------------------
+void intmap_free_slot(IntMap *im, uint32_t slot)
+{
+	im->keys[slot] = 0;
+	im->free++;
+}
+
+//-----------------------------------------------------------------------------
 void intmap_rem(IntMap *im, uint32_t key)
 {
 	uint32_t h, k, i = intmap_h1(key) % im->size;
 	for (k=0; k<im->size; ++k) {
 		h = (i+k) % im->size;
 		if (im->keys[h] == key) {
-			im->keys[h] = 0;
-			im->free++;
+			intmap_free_slot(im, h);
 			if (im->free > 3 * (im->size >> 2) && im->size > HASHMAP_MIN_SIZE) {
 				intmap_resize(im, im->size >> 1);
 			}
@@ -293,7 +299,7 @@ void intmap_serialize(IntMap *im, void (*serializer)(void*,void **,uint32_t*), v
 }
 
 //-----------------------------------------------------------------------------
-void intmap_deserialize(IntMap *im, uint32_t (*deserializer)(void*,void*), void* (*ctor)(void *), void *buf)
+int intmap_deserialize(IntMap *im, uint32_t (*deserializer)(void*,void*), void* (*ctor)(void *), void *buf)
 {
 	uint32_t count;
 	memcpy(&count, buf, sizeof(uint32_t));
@@ -311,6 +317,7 @@ void intmap_deserialize(IntMap *im, uint32_t (*deserializer)(void*,void*), void*
 		}		
 		off += deserializer(elem, buf+off);		
 	}
+	return off;
 }
 
 

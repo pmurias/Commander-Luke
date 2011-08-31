@@ -34,6 +34,6 @@ struct CritterVTable {
 extern IntMap *critters;
 
 void critters_serialize(void **buf, uint32_t *size);
-void critters_deserialize(void *buf);
+int critters_deserialize(void *buf);
 
 #endif
