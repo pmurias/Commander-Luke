@@ -3,7 +3,7 @@
 
 
 #include "commands.h"
-#include "ai.h"
+
 
 #define CRITTER_BASE \
 	CritterVTable* vtable;
@@ -11,9 +11,11 @@
 struct CritterVTable; 
 typedef struct CritterVTable CritterVTable;
 
-typedef struct Critter {
+typedef struct {
     CRITTER_BASE
 } Critter ;
+
+typedef void (*AiFunc)(Critter *c);
 
 struct CritterVTable {
   void (*draw)(Critter* critter,float time_delta); // The critter displays itself
