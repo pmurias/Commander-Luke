@@ -37,7 +37,7 @@ uint32_t ticks;
 char *login;
 
 IntMap *critters;
-uint32_t uid = 100;
+uint32_t uid = 100;	
 
 typedef struct {
 	int width;
@@ -91,13 +91,7 @@ Engine *engine_init()
 {	
 	Engine *engine = (Engine*)malloc(sizeof(Engine));
 	engine->map = tilemap_init(100, 100);
-	spells = new_ptrarray();
-
-	for (int i=0;i<10;i++) {
-		Critter *anomaly = new_human(51,51,1);
-		anomaly->vtable->set_ai(anomaly,ai_run_around);		
-		intmap_ins(critters, uid++, anomaly);
-	}
+	spells = new_ptrarray();	
 	return engine;
 }
 
@@ -145,15 +139,19 @@ void command_set_tile(Engine * engine, Netcmd_SetTile * c)
 
 void client_snapshot_callback(void *buf, uint32_t size)
 {		
+	printf("----------------------------------------------------\n");
 	for (int i = 0; i <MAX_CLIENTS; i++)
 	{		
 		if (!logins[i]) {
 			logins[i] = new_str();
-		}		
-		str_set(logins[i], (char*)buf+i*15);
-		Critter *c = intmap_find(critters, i+1);
-		c->vtable->deserialize(c, buf+300+i*human_pack_size(), human_pack_size());
+		}				
+		str_set(logins[i], (char*)buf+i*15);		
 	}	
+	/* ai_seed */
+	memcpy(&ai_seed, buf+300, 4);
+	
+	/* critters */
+	critters_deserialize(buf+304);
 }
 
 void game_logic_tick(NetworkType *network)
@@ -282,21 +280,21 @@ void client_loop(NetworkType * network)
 			}
 			if (window_mousepressed(1)) {
 				for (int i=0; i < 3; i++) {
-				Netcmd_SpawnFlare cmd;
-				cmd.header.type = NETCMD_SPAWNFLARE;
-				cmd.sender = network->get_id(network->state);
-
-				Critter *player = intmap_find(critters, cmd.sender+1);
-				float hp = player->vtable->get_hp(player);
-
-				if (hp >= 1) {
-					player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
-					iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
-					float f = 200.0/sqrt(pow(cmd.x-cmd.target_x, 2) + pow(cmd.y-cmd.target_y, 2));
-					cmd.target_x += (float)((rand_rand()%100)-50)/f;
-					cmd.target_y += (float)((rand_rand()%100)-50)/f;
-					network->add_command(network->state, (Netcmd*)&cmd);
-				}
+					Netcmd_SpawnFlare cmd;
+					cmd.header.type = NETCMD_SPAWNFLARE;
+					cmd.sender = network->get_id(network->state);
+	
+					Critter *player = intmap_find(critters, cmd.sender+1);
+					float hp = player->vtable->get_hp(player);
+	
+					if (hp >= 1) {
+						player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
+						iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
+						float f = 200.0/sqrt(pow(cmd.x-cmd.target_x, 2) + pow(cmd.y-cmd.target_y, 2));
+						cmd.target_x += (float)((rand_rand()%100)-50)/f;
+						cmd.target_y += (float)((rand_rand()%100)-50)/f;
+						network->add_command(network->state, (Netcmd*)&cmd);
+					}
 				}
 			}
 							
@@ -374,6 +372,7 @@ void tcpclient_loop(NetworkType *network)
 //------------------------------------------------------------------------------
 void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 {	
+	printf("----------------------------------------------------\n");
 	*size = MAX_CLIENTS*15;
 	*buf = malloc(*size);	
 	memset(*buf, 0, *size);
@@ -381,26 +380,27 @@ void server_snapshot_callback(void **buf, uint8_t cid, uint32_t *size)
 	for (int i = 0; i < MAX_CLIENTS; i++) {		
 		if (logins[i] != NULL) {								
 			memcpy(*buf + i*15, logins[i]->val, logins[i]->len);			
-		}				
-	}	
-	/* player data */
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		void *pack;
-		uint32_t packsize;
-		Critter *c = intmap_find(critters, i+1);
-		c->vtable->serialize(c, &pack, &packsize);				
-		*buf = realloc(*buf, *size + packsize);
-		memcpy(*buf+*size, pack, packsize);
-		*size += packsize;
-		free(pack);
-	}		
+		}
+	}
+	/* ai_seed */
+	*buf = realloc(*buf, *size + 4);
+	memcpy(*buf + *size, &ai_seed, 4);
+	*size += 4;
+	
+	/* critters data */
+	void *critbuf;
+	uint32_t critsize;
+	critters_serialize(&critbuf, &critsize);
+	*buf = realloc(*buf, *size + critsize);
+	memcpy(*buf + *size, critbuf, critsize);
+	*size += critsize;	
 }
 
 int server_login_callback(void *login, uint8_t cid, uint32_t size)
-{	
+{
 	if (!logins[cid]) {
-		logins[cid] = new_str();		
-	}	
+		logins[cid] = new_str();
+	}
 	str_set(logins[cid], (char*)login);
 	return 1;
 }
@@ -412,10 +412,10 @@ void server_loop(NetworkType * network)
 	
 	while (1) {
 		network->tick(network->state);
-		while (ticks) {
-			game_logic_tick(network);
-			ticks--;
-		}		
+		//while (ticks) {
+		//	game_logic_tick(network);
+			//ticks--;
+		//}		
 	}
 }
 
@@ -444,6 +444,13 @@ void system_startup()
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		Critter *c = new_human(50, 50,0);			
 		intmap_ins(critters, i+1, c);
+	}
+	
+	/* npcs */
+	for (int i=0;i<1;i++) {
+		Critter *anomaly = new_human(51,51,1);
+		anomaly->vtable->set_ai(anomaly, AI_RUN_AROUND);		
+		intmap_ins(critters, uid++, anomaly);
 	}
 }
 

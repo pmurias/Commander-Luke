@@ -108,7 +108,7 @@ static void process_message(TcpClientState *state)
 			off += cmdsize;
 			
 			queue_push(state->in, cmd);							
-		}
+		}		
 					
 		state->waiting = 0;		
 		break;
@@ -159,7 +159,8 @@ static void client_read(TcpClient * socket, char *buf, int len)
 //-----------------------------------------------------------------------------
 static void client_disconnect(TcpClient * socket)
 {
-	printf("Disconnect\n");
+	printf("Disconnected\n");
+	exit(1);
 }
 
 //-----------------------------------------------------------------------------

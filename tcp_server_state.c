@@ -62,8 +62,7 @@ static void tick(void *d)
 		none_waits &= !(state->connections[i].active && state->connections[i].waiting);				
 	}
 	
-	if (none_waits) {		
-		state->newturn_callback();		
+	if (none_waits) {						
 		float curr_time = glfwGetTime();		
 		float framesf = ((curr_time-state->last_send_time) / state->time_step);
 		state->last_send_time = curr_time;
@@ -87,6 +86,7 @@ static void tick(void *d)
 			}
 		}				
 		state->bulk_size = 9;
+		state->newturn_callback();
 	}
 }
 
@@ -185,9 +185,9 @@ static void process_message(TcpServerState *state, int cid)
 		printf("CID %d confirmed snapshot.\n", cid);
 		conn->waiting = 0;
 		break;
-	case TCP_MSG_LOGIN:		 
+	case TCP_MSG_LOGIN:		
 		if (state->login_callback(conn->read_buf, cid, conn->msg_size)) {
-			printf("CID %d logged in. Sending recent snapshot.\n", cid);
+			printf("CID %d logged in. Sending recent snapshot.\n", cid);			
 			send_snapshot(state, cid);
 		}		
 		break;

@@ -24,14 +24,15 @@ SOURCES= \
 	single_player.c \
 	tcp_client_state.c \
 	tcp_server_state.c \
-	rand.c \
-	ai.c
+	rand.c
 
 # game modules
 SOURCES+= \
 	main.c \
 	camera.c \
 	commands.c \
+	ai.c \
+	critter.c
 	
 # critters
 SOURCES+= \

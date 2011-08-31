@@ -15,6 +15,9 @@ static char* idle_anim[] = {"Nolty.Idle","Anomaly.Idle"};
 static char* running_anim[] = {"Nolty.Running","Anomaly.Running"};
 
 typedef struct {
+	uint8_t type;
+	uint8_t aitype;
+	
 	float x;
 	float y;
 
@@ -134,6 +137,8 @@ void human_rebuild(Critter *c)
 	Human *cri = (Human *)c;
 	cri->face_x = cri->c.move_x - cri->c.x;
 	cri->face_y = cri->c.move_y - cri->c.y;
+	
+	cri->vtable->set_ai((Critter*)cri, cri->c.aitype);	
 }
 
 //-----------------------------------------------------------------------------
@@ -167,10 +172,11 @@ static float get_velocity(Critter * c)
 }
 
 //-----------------------------------------------------------------------------
-static void set_ai(Critter * c, AiFunc ai)
+static void set_ai(Critter * c, int ai)
 {
 	Human *cri = (Human *) c;
-	cri->ai = ai;
+	cri->ai = ai_funcs[ai];
+	cri->c.aitype = ai;
 }
 
 //-----------------------------------------------------------------------------
@@ -200,6 +206,7 @@ Critter *new_human(float x, float y,int anim)
 {
 	Human *h = (Human *) malloc(sizeof(Human));
 	h->vtable = &vtable;
+	h->c.type = CRITTER_HUMAN;
 	h->c.x = x;
 	h->c.y = y;
 	h->c.velocity = 0;

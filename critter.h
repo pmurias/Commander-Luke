@@ -4,6 +4,7 @@
 
 #include "commands.h"
 #include "ai.h"
+#include "hashmap.h"
 
 #define CRITTER_BASE \
 	CritterVTable* vtable;
@@ -25,11 +26,15 @@ struct CritterVTable {
   void (*damage)(Critter*,float hp);
   float (*get_hp)(Critter*);
   float (*get_velocity)(Critter*);
-  void (*set_ai)(Critter*, AiFunc ai);
+  void (*set_ai)(Critter*, int ai);
 };
 
+#define CRITTER_HUMAN 1
+
 //HACK
-#include "hashmap.h"
 extern IntMap *critters;
+
+void critters_serialize(void **buf, uint32_t *size);
+void critters_deserialize(void *buf);
 
 #endif
