@@ -1,8 +1,7 @@
 #ifndef __AI_H__
 #define __AI_H__
 
-struct Critter;
-typedef struct Critter Critter;
+#include "critter.h"
 
 typedef void (*AiFunc)(Critter *c);
 

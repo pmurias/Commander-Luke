@@ -3,7 +3,6 @@
 
 
 #include "commands.h"
-#include "ai.h"
 #include "hashmap.h"
 
 #define CRITTER_BASE \
@@ -12,7 +11,7 @@
 struct CritterVTable; 
 typedef struct CritterVTable CritterVTable;
 
-typedef struct Critter {
+typedef struct {
     CRITTER_BASE
 } Critter ;
 

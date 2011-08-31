@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "ai.h"
 #include "critter.h"
 #include "rand.h"
 
