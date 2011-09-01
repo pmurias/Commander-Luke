@@ -217,8 +217,8 @@ void client_loop(NetworkType * network)
 	for (int i = 0; i < MAX_CLIENTS; i++) {
 		lights[i] = new_isolight();
 		lights[i]->r = 1;
-		lights[i]->g = 0.5;
-		lights[i]->b = 0.1;
+		lights[i]->g = 1;
+		lights[i]->b = 1;
 		lights[i]->range = 0;
 		lights[i]->x = 50;
 		lights[i]->y = 50;
