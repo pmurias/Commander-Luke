@@ -22,6 +22,5 @@ void ai_run_around(Critter *c)
 		command.move_x = 50+(rand_rand_r(&ai_seed)%400)/100.0;
 		command.move_y = 50+(rand_rand_r(&ai_seed)%400)/100.0;
 		c->vtable->order(c,(Netcmd*) &command);
-		printf("ai_seed: %u\n", ai_seed);
 	}
 }
