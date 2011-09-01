@@ -17,6 +17,8 @@
 #include "rand.h"
 #include "array.h"
 #include "ai.h"
+#include "tilemap.h"
+#include "map_gen.h"
 
 #include "commands.h"
 #include "camera.h"
@@ -26,7 +28,6 @@
 #include "spell.h"
 #include "spells/flare.h"
 
-#define NEWC(type, c) (type *)(malloc(sizeof(type) * (c)))
 
 #define MAX_CLIENTS 20
 IsoLight *lights[MAX_CLIENTS];
@@ -38,22 +39,6 @@ char *login;
 IntMap *critters;
 uint32_t uid = 100;	
 
-typedef struct {
-	int width;
-	int height;
-	int *tiles;
-} TileMap;
-
-TileMap *tilemap_init(int w, int h)
-{
-	TileMap *map = malloc(sizeof(TileMap));
-	map->tiles = NEWC(int, w * h);
-	map->width = w;
-	map->height = h;
-	for (int i = 0; i < w * h; i++) map->tiles[i] = 1+rand_rand()%4;
-	//memset(map->tiles, 0, w * h * 4);
-	return map;
-}
 
 void tilemap_free(TileMap * map)
 {
@@ -89,7 +74,7 @@ void usage()
 Engine *engine_init()
 {	
 	Engine *engine = (Engine*)malloc(sizeof(Engine));
-	engine->map = tilemap_init(100, 100);
+	engine->map = overworld_gen(100, 100);	
 	return engine;
 }
 

@@ -33,7 +33,9 @@ SOURCES+= \
 	commands.c \
 	ai.c \
 	critter.c \
-	spell.c
+	spell.c \
+	map_gen.c
+
 	
 # critters
 SOURCES+= \
