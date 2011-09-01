@@ -119,6 +119,7 @@ static void _free(Spell ** s)
 {
 	Flare *spell = (Flare *) * s;
 	if (spell->light) {
+		spell->light->range = 0;
 		free_isolight(&spell->light);
 	}
 	free(*s);
@@ -171,6 +172,11 @@ Spell* create_flare(int gfx, float x, float y, float mx, float my)
 	spell->c.dist = -1;	
 	spell->c.fade = 200;
 	spell->c.exploded = 0;
+	
+	if (gfx) {
+		spell->light->x = spell->c.x;
+		spell->light->y = spell->c.y;
+	}
 	
 	return (Spell*)spell;
 }

@@ -1,6 +1,6 @@
 all: luke
 CC=gcc
-CFLAGS=-c -std=gnu99 -Wall -O2 -Wfatal-errors -Werror -g
+CFLAGS=-c -std=gnu99 -I./core/ -Wall -O2 -Wfatal-errors -Werror -g
 
 ifeq ($(OS),Windows_NT)
 	CLIBS=-lglfw -lopengl32 -lpng -lz -lws2_32
@@ -10,21 +10,21 @@ endif
 
 # core modules
 SOURCES= \
-	window.c \
-	texture.c \
-	hashmap.c \
-	str.c \
-	queue.c \
-	array.c \
-	socket.c \
-	blit.c \
-	anim.c \
-	iso.c \
-	font.c \
-	single_player.c \
-	tcp_client_state.c \
-	tcp_server_state.c \
-	rand.c
+	core/window.c \
+	core/texture.c \
+	core/hashmap.c \
+	core/str.c \
+	core/queue.c \
+	core/array.c \
+	core/socket.c \
+	core/blit.c \
+	core/anim.c \
+	core/iso.c \
+	core/font.c \
+	core/single_player.c \
+	core/tcp_client_state.c \
+	core/tcp_server_state.c \
+	core/rand.c
 
 # game modules
 SOURCES+= \
