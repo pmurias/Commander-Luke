@@ -37,7 +37,7 @@ uint32_t ticks;
 char *login;
 
 IntMap *critters;
-uint32_t uid = 100;	
+uint32_t uid = 100;
 
 
 void tilemap_free(TileMap * map)
@@ -56,8 +56,27 @@ void draw_tilemap(TileMap * map, Camera * cam, Sprite ** tileset)
 			float tileY = round(cam->y) + j + i / 2 + (i % 2) - cam->view;
 
 			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {
-				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];				
-				iso_blit_tile(tile->texture, tileX, tileY);				
+				Sprite *tile = tileset[map->tiles[(int)(map->width * tileY + tileX)]];
+				iso_blit_tile(tile->texture, tileX, tileY);
+			}
+		}
+}
+
+void draw_walls(TileMap * map, Camera * cam, Sprite ** tileset)
+{
+	iso_set_cam(cam->x, cam->y);
+
+	for (int i = 0; i < cam->view * 2 + 1; i++)
+		for (int j = 0; j < cam->view + 1 - (i % 2); j++) {
+			float tileX = round(cam->x) + i / 2 - j;
+			float tileY = round(cam->y) + j + i / 2 + (i % 2) - cam->view;
+
+			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {
+				int tid = map->wall_tiles[(int)(map->width * tileY + tileX)];
+				if (tid) {
+					Sprite *tile = tileset[tid];
+					isozbatch_add_sprite(tile, tileX, tileY);
+				}
 			}
 		}
 }
@@ -85,13 +104,23 @@ void engine_free(Engine * engine)
 }
 
 Sprite *g_tileset[12];
+Sprite *w_tileset[12];
 void load_assets()
 {
 	g_tileset[0] = blit_load_sprite("./data/tiles/template.png");
 	g_tileset[1] = blit_load_sprite("./data/tiles/grass0.png");
 	g_tileset[2] = blit_load_sprite("./data/tiles/grass1.png");
 	g_tileset[3] = blit_load_sprite("./data/tiles/grass2.png");
-	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");	
+	g_tileset[4] = blit_load_sprite("./data/tiles/grass3.png");		
+	
+	w_tileset[1] = blit_load_sprite("./data/wall/wall001.png");
+	w_tileset[2] = blit_load_sprite("./data/wall/wall002.png");
+	w_tileset[3] = blit_load_sprite("./data/wall/wall003.png");
+	w_tileset[4] = blit_load_sprite("./data/wall/wall004.png");
+	w_tileset[1]->center_y = w_tileset[1]->height - 40;
+	w_tileset[2]->center_y = w_tileset[1]->height - 40;
+	w_tileset[3]->center_y = w_tileset[1]->height - 40;
+	w_tileset[4]->center_y = w_tileset[1]->height - 40;	
 
 	blit_load_spritesheet_split("./data/SheetNolty.png", "./data/SheetNolty.txt");
 	blit_load_spritesheet_split("./data/Anomaly.png", "./data/Anomaly.txt");
@@ -239,7 +268,7 @@ void client_loop(NetworkType * network)
 	cmd.sender = network->get_id(network->state);		
 	if (logins[cmd.sender]) {	/* in single player there is no login */
 		memcpy(cmd.login, logins[cmd.sender]->val, logins[cmd.sender]->len+1);
-		network->add_command(network->state, (Netcmd*)&cmd);
+		network->add_command(network->state, (Netcmd*)&cmd);				
 	}
 	
 	float time_step = 1.0 / 30.0;
@@ -317,6 +346,9 @@ void client_loop(NetworkType * network)
 				c->vtable->draw(c, window_frame_time());
 			}
 		}
+		draw_walls(engine->map, camera, w_tileset);
+		isozbatch_draw();
+		
 		for (int i = 0; i < spells->size; i++) {
 			if (spells->keys[i]) {
 				Spell *spell = (Spell *)spells->data[i];

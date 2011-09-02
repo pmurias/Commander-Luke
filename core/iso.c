@@ -10,6 +10,13 @@
 #include "window.h"
 #include "iso.h"
 
+typedef struct
+{
+	Sprite *sprite;
+	float x;
+	float y;
+} IsoZBatchElem;
+
 typedef struct InternalState {
 	float dir_table[ISODIRECTIONS][2];
 	Str *key_str;
@@ -25,6 +32,7 @@ typedef struct InternalState {
 	float ambient_g;
 	float ambient_b;
 	PtrArray *lights;	
+	Array *zbatch;
 } InternalState;
 static InternalState is;
 
@@ -45,6 +53,8 @@ void iso_startup(int tilew, int tileh)
 	is.tile_height = tileh;
 	is.cam_x = 0;
 	is.cam_y = 0;	
+	
+	is.zbatch = new_array(sizeof(IsoZBatchElem));
 }
 
 //-----------------------------------------------------------------------------
@@ -123,8 +133,7 @@ void iso_blit_tile(Texture *tex, int x, int y)
 	float r, g, b;
 	
 	glBegin(GL_QUADS);
-	
-	
+		
 	iso_illuminate(x+0.5, y-0.5, &r, &g, &b);
 	glColor3f(r, g, b);
 	glTexCoord2f(0, 0.5);
@@ -322,5 +331,47 @@ int isoanim_width(IsoAnim *anim)
 int isoanim_height(IsoAnim *anim)
 {
 	return anim->anims[0]->height;
+}
+
+//-----------------------------------------------------------------------------
+void isozbatch_add_sprite(Sprite *s, float x, float y)
+{
+	IsoZBatchElem elem;
+	elem.sprite = s;
+	elem.x = x;
+	elem.y = y;
+	array_add(is.zbatch, &elem);
+}
+
+//-----------------------------------------------------------------------------
+void isozbatch_add_frame(IsoAnim *anim, float x, float y, float time, float dirx, float diry)
+{
+	int dir = iso_get_dir(dirx, diry);	
+	Sprite *frame = anim_get_frame(anim->anims[dir], time);
+	isozbatch_add_sprite(frame, x, y);
+}
+
+//-----------------------------------------------------------------------------
+static int isozbatchelem_compare(const void *aptr, const void *bptr)
+{
+	IsoZBatchElem *a = (IsoZBatchElem*)aptr;
+	IsoZBatchElem *b = (IsoZBatchElem*)bptr;
+	return ((a->x + a->y) - (b->x + b->y)) > 0;
+}
+
+//-----------------------------------------------------------------------------
+void isozbatch_draw(void)
+{
+	float wx, wy;
+	IsoZBatchElem *e;
+	
+	array_sort(is.zbatch, isozbatchelem_compare);
+	for (int i = 0; i<is.zbatch->count; i++) {
+		e = array_get(is.zbatch, i);
+		iso_world2screen(e->x, e->y, &wx, &wy);	
+		iso_illuminate(e->x, e->y, &e->sprite->r, &e->sprite->g, &e->sprite->b);
+		blit_sprite(e->sprite, wx, wy);
+	}
+	array_clear(is.zbatch);
 }
 

@@ -55,6 +55,12 @@ void array_clear(Array *arr)
 }
 
 //-----------------------------------------------------------------------------
+void array_sort(Array *arr, int (*cmp)(const void*, const void *))
+{
+	qsort(arr->data, arr->count, arr->elem_size, cmp);
+}
+
+//-----------------------------------------------------------------------------
 void *ptrarray_get(Array *arr, int i)
 {
 	return *((void **)array_get(arr, i));

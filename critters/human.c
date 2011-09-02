@@ -96,7 +96,7 @@ static void draw(Critter * c, float time_delta)
 		anim = isoanim_get(running_anim[cri->anim]);
 	}
 
-	isoanim_blit_frame(anim, cri->c.x, cri->c.y, cri->c.anim_time, cri->face_x, cri->face_y);
+	isozbatch_add_frame(anim, cri->c.x, cri->c.y, cri->c.anim_time, cri->face_x, cri->face_y);
 }
 
 

@@ -33,9 +33,15 @@ TileMap *overworld_gen(int w, int h)
 {
 	TileMap *map = malloc(sizeof(TileMap));
 	map->tiles = NEWC(int, w * h);
+	map->wall_tiles = NEWC(int, w * h);
 	map->width = w;
 	map->height = h;
-	for (int i = 0; i < w * h; i++) map->tiles[i] = 1+rand_rand()%4;
+	for (int i = 0; i < w * h; i++) {
+		map->tiles[i] = 1+rand_rand()%4;
+		int a = rand_rand()%5;
+		int b = rand_rand()%5;
+		map->wall_tiles[i] = (a==b ? a : 0);
+	}
 
 	int holes = 300;
 	for (int i = 0; i < holes; i++) {

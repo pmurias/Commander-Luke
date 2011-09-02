@@ -171,7 +171,7 @@ Spell* create_flare(int gfx, float x, float y, float mx, float my)
 	spell->c.z = 30;
 	spell->c.dist = -1;	
 	spell->c.fade = 200;
-	spell->c.exploded = 0;
+	spell->c.exploded = 0;	
 	
 	if (gfx) {
 		spell->light->x = spell->c.x;

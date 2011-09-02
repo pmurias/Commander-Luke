@@ -14,6 +14,7 @@ void array_add(Array *arr, void *elem);
 void *array_get(Array *arr, int i);
 void array_remove(Array *arr, int i);
 void array_clear(Array *arr);
+void array_sort(Array *arr, int (*cmp)(const void*, const void *));
 
 #define PtrArray Array
 #define new_ptrarray() new_array(sizeof(void*))

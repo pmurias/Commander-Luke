@@ -4,5 +4,6 @@ typedef struct {
 	int width;
 	int height;
 	int *tiles;
+	int *wall_tiles;
 } TileMap;
 #endif
