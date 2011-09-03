@@ -46,6 +46,7 @@ int isoanim_height(IsoAnim *anim);
 
 void isozbatch_add_sprite(Sprite *s, float x, float y);
 void isozbatch_add_frame(IsoAnim *anim, float x, float y, float time, float dirx, float diry);
+void isozbatch_add_sprite_off(Sprite *s, float x, float y, float offx, float offy);
 void isozbatch_draw(void);
 
 #endif

@@ -15,6 +15,8 @@ typedef struct
 	Sprite *sprite;
 	float x;
 	float y;
+	float offx;
+	float offy;
 } IsoZBatchElem;
 
 typedef struct InternalState {
@@ -340,6 +342,8 @@ void isozbatch_add_sprite(Sprite *s, float x, float y)
 	elem.sprite = s;
 	elem.x = x;
 	elem.y = y;
+	elem.offx = 0;
+	elem.offy = 0;
 	array_add(is.zbatch, &elem);
 }
 
@@ -352,11 +356,23 @@ void isozbatch_add_frame(IsoAnim *anim, float x, float y, float time, float dirx
 }
 
 //-----------------------------------------------------------------------------
+void isozbatch_add_sprite_off(Sprite *s, float x, float y, float offx, float offy)
+{
+	IsoZBatchElem elem;
+	elem.sprite = s;
+	elem.x = x;
+	elem.y = y;
+	elem.offx = offx;
+	elem.offy = offy;
+	array_add(is.zbatch, &elem);
+}
+
+//-----------------------------------------------------------------------------
 static int isozbatchelem_compare(const void *aptr, const void *bptr)
 {
 	IsoZBatchElem *a = (IsoZBatchElem*)aptr;
 	IsoZBatchElem *b = (IsoZBatchElem*)bptr;
-	return ((a->x + a->y) - (b->x + b->y)) > 0;
+	return ((a->x+a->offx + a->y+a->offy) - (b->x+b->offx + b->y+b->offy)) > 0;
 }
 
 //-----------------------------------------------------------------------------

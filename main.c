@@ -73,10 +73,10 @@ void draw_walls(TileMap * map, Camera * cam, Sprite ** tileset)
 
 			if (tileX >= 0 && tileY >= 0 && tileX < map->width && tileY < map->height) {
 				int tid = map->wall_tiles[(int)(map->width * tileY + tileX)];
-				if (tid & 2) isozbatch_add_sprite(tileset[1], tileX, tileY);
-				if (tid & 4) isozbatch_add_sprite(tileset[2], tileX, tileY);
-				if (tid & 8) isozbatch_add_sprite(tileset[3], tileX, tileY);
-				if (tid & 16) isozbatch_add_sprite(tileset[4], tileX, tileY);
+				if (tid & 2) isozbatch_add_sprite_off(tileset[1], tileX, tileY, -0.5, 0.5);
+				if (tid & 4) isozbatch_add_sprite_off(tileset[2], tileX, tileY, 0.5, -0.5);
+				if (tid & 8) isozbatch_add_sprite_off(tileset[3], tileX, tileY, -0.5, -0.5);
+				if (tid & 16) isozbatch_add_sprite_off(tileset[4], tileX, tileY, -0.5, -0.5);
 			}
 		}
 }
