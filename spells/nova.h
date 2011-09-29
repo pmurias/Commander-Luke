@@ -3,8 +3,8 @@
 
 #include "spell.h"
 
-Spell *new_nova(int gfx);
-Spell* create_nova(int gfx, float x, float y, float mx, float my);
+Spell *new_nova();
+Spell* create_nova(float x, float y);
 uint32_t nova_pack_size(void);
 void nova_init_vtable(void);
 

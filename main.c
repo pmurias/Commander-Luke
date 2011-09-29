@@ -27,6 +27,7 @@
 #include "critters/blurred.h"
 #include "spell.h"
 #include "spells/flare.h"
+#include "spells/nova.h"
 
 
 #define MAX_CLIENTS 20
@@ -191,6 +192,12 @@ void game_logic_tick(NetworkType *network)
 				intmap_ins(spells, spell_uid++, flare);				
 				break;
 			}
+		case NETCMD_SPAWNNOVA:{
+				Netcmd_SpawnNova *sf = (Netcmd_SpawnNova *) command;
+				Spell *nova = create_nova(sf->x, sf->y);
+				intmap_ins(spells, spell_uid++, nova);				
+				break;
+			}
 		case NETCMD_SETLOGIN:{
 				Netcmd_SetLogin *sl = (Netcmd_SetLogin*) command;
 				if (!logins[sl->sender]) {
@@ -274,6 +281,9 @@ void client_loop(NetworkType * network)
 	float time_step = 1.0 / 30.0;
 	float time_accum = 0;
 	int running = 1;
+
+        int weapon = 1;
+
 	while (running) {
 		window_start_frame();
 
@@ -281,6 +291,13 @@ void client_loop(NetworkType * network)
 		time_accum += window_frame_time();
 		while (time_accum >= time_step) {
 			time_accum -= time_step;
+
+			if (window_keypressed('1')) {
+                        	weapon = 1;
+                        }
+			if (window_keypressed('2')) {
+                        	weapon = 2;
+                        }
 
 			if (window_keypressed('X')) {
 				running = 0;
@@ -294,7 +311,21 @@ void client_loop(NetworkType * network)
 				iso_screen2world(window_xmouse(),  window_ymouse(), &command.move_x, &command.move_y);
 				network->add_command(network->state, (Netcmd*)&command);
 			}
-			if (window_mousepressed(1)) {
+
+			if (weapon == 1 && window_mousepressed(1)) {
+					Netcmd_SpawnNova cmd;
+					cmd.header.type = NETCMD_SPAWNNOVA;
+					cmd.sender = network->get_id(network->state);
+	
+					Critter *player = intmap_find(critters, cmd.sender+1);
+					float hp = player->vtable->get_hp(player);
+	
+					if (hp >= 1) {
+						player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
+						network->add_command(network->state, (Netcmd*)&cmd);
+					}
+			}
+			if (weapon == 2 && window_mousepressed(1)) {
 				for (int i=0; i < 3; i++) {
 					Netcmd_SpawnFlare cmd;
 					cmd.header.type = NETCMD_SPAWNFLARE;
@@ -340,21 +371,30 @@ void client_loop(NetworkType * network)
 			}
 		}
 
+
 		for (int i = 0; i < critters->size; i++) {
 			if (critters->keys[i]) {
 				Critter *c = critters->data[i];
 				c->vtable->draw(c, window_frame_time());
 			}
 		}
-		draw_walls(engine->map, camera, w_tileset);
-		isozbatch_draw();
-		
+
 		for (int i = 0; i < spells->size; i++) {
 			if (spells->keys[i]) {
 				Spell *spell = (Spell *)spells->data[i];
 				spell->vtable->draw(spell, window_frame_time());
 			}
 		}
+
+//		draw_walls(engine->map, camera, w_tileset);
+		for (int i = 0; i < spells->size; i++) {
+			if (spells->keys[i]) {
+				Spell *spell = (Spell *)spells->data[i];
+				spell->vtable->draw(spell, window_frame_time());
+			}
+		}
+		isozbatch_draw();
+		
 
 		Critter *c = intmap_find(critters, network->get_id(network->state)+1);
 		int hp = c->vtable->get_hp(c);
@@ -462,6 +502,7 @@ void system_startup()
 	human_init_vtable();
 	blurred_init_vtable();
 	flare_init_vtable();
+	nova_init_vtable();
 	
 	spells = new_intmap();
 	critters = new_intmap();

@@ -18,14 +18,16 @@ typedef struct {
 typedef struct {
 	SPELL_BASE;
 	NovaCore c;
-
-	IsoLight *light;
 } Nova;
 
 //-----------------------------------------------------------------------------
 static void tick(Spell ** s)
 {
-	//Nova *spell = (Nova *) * s;
+	Nova *spell = (Nova *) * s;
+        spell->c.fade -= 0.01;
+	if (spell->c.fade < 0.01) {
+		(*s)->vtable->free(s);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -33,10 +35,11 @@ static void draw(Spell * s, float time_delta)
 {
 	Nova *spell = (Nova *) s;
 
-	float scale = 1.0;
-	float r = 1.0;
-	for (int i = 0; i < 128; i++) {
-		float a = (i * 2 * M_PI / 128);
+	float scale = 0.3;
+	float r = 4.0*(1-spell->c.fade)+0.4;
+        int n = 64;
+	for (int i = 0; i < n; i++) {
+		float a = (i * 2 * M_PI / n);
 
 		float x = cos(a) * r + spell->c.x;
 		float y = sin(a) * r + spell->c.y;
@@ -44,15 +47,11 @@ static void draw(Spell * s, float time_delta)
 		float wx, wy;
 		iso_world2screen(x, y, &wx, &wy);
 
-		Sprite *nova = blit_get_sprite("./data/nova.png");
-		//nova->r = nova->g = nova->b = spell->c.fade;
+		Sprite *nova = blit_get_sprite("./data/flare.png");
+		nova->r = nova->g = nova->b = 1.0;
 		blit_sprite_scaled(nova, wx, wy, scale);
 	}
 
-	if (spell->light) {
-		spell->light->x = spell->c.x;
-		spell->light->y = spell->c.y;
-	}
 }
 
 //-----------------------------------------------------------------------------
