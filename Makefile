@@ -44,7 +44,8 @@ SOURCES+= \
 	
 # spells
 SOURCES+= \
-	spells/flare.c
+	spells/flare.c\
+	spells/nova.c
 	
 OBJECTS=$(SOURCES:.c=.o)
 
