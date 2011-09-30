@@ -68,8 +68,7 @@ static void tick(Spell ** s)
 		spell->c.fade *= 0.6;
 		
 		spell->angle += 10;		
-		spell->scale *= 1.15;
-		spell->scale *= 1.05;		
+		spell->scale *= 1.10;		
 		spell->light->range *= 1.05;
 		if (spell->c.fade < 0.05) {
 			(*s)->vtable->free(s);
@@ -92,9 +91,8 @@ static void draw(Spell * s, float time_delta)
 	iso_world2screen(spell->c.x, spell->c.y, &wx, &wy);
 
 	Sprite *flare = blit_get_sprite("./data/flare.png");
-	flare->r = flare->g = flare->b = spell->c.fade;
-	flare->angle = spell->angle;
-	blit_sprite_scaled(flare, wx, wy - spell->c.z, spell->scale);
+    isozbatch_add_sprite_ex(flare, spell->c.x, spell->c.y, spell->c.z, 0, 0, spell->scale, spell->angle, 0,
+            spell->c.fade, spell->c.fade, spell->c.fade);
 
 	if (spell->light) {
 		spell->light->x = spell->c.x;

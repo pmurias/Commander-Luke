@@ -15,8 +15,13 @@ typedef struct
 	Sprite *sprite;
 	float x;
 	float y;
+    float z;
 	float offx;
 	float offy;
+    float s;
+    int light;
+    float angle;
+    float r, g, b;
 } IsoZBatchElem;
 
 typedef struct InternalState {
@@ -336,15 +341,34 @@ int isoanim_height(IsoAnim *anim)
 }
 
 //-----------------------------------------------------------------------------
-void isozbatch_add_sprite(Sprite *s, float x, float y)
+void isozbatch_add_sprite_ex(Sprite *s, float x, float y, float z, float offx, float offy, float sc, float an, int l, float r, float g, float b)
 {
 	IsoZBatchElem elem;
 	elem.sprite = s;
 	elem.x = x;
 	elem.y = y;
-	elem.offx = 0;
-	elem.offy = 0;
+    elem.z = z;
+	elem.offx = offx;
+	elem.offy = offy;
+    elem.s = sc;
+    elem.light = l;
+    elem.angle = an;
+    elem.r = r;
+    elem.g = g;
+    elem.b = b;
 	array_add(is.zbatch, &elem);
+}
+
+//-----------------------------------------------------------------------------
+void isozbatch_add_sprite(Sprite *s, float x, float y)
+{
+    isozbatch_add_sprite_ex(s, x, y, 0, 0, 0, 1, 0, 1, 1, 1, 1);
+}
+
+//-----------------------------------------------------------------------------
+void isozbatch_add_sprite_scaled(Sprite *s, float x, float y, float sc)
+{
+    isozbatch_add_sprite_ex(s, x, y, 0, 0, 0, sc, 0, 0, 1, 1, 1);
 }
 
 //-----------------------------------------------------------------------------
@@ -358,13 +382,7 @@ void isozbatch_add_frame(IsoAnim *anim, float x, float y, float time, float dirx
 //-----------------------------------------------------------------------------
 void isozbatch_add_sprite_off(Sprite *s, float x, float y, float offx, float offy)
 {
-	IsoZBatchElem elem;
-	elem.sprite = s;
-	elem.x = x;
-	elem.y = y;
-	elem.offx = offx;
-	elem.offy = offy;
-	array_add(is.zbatch, &elem);
+    isozbatch_add_sprite_ex(s, x, y, 0, offx, offy, 1, 0, 1, 1, 1, 1);
 }
 
 //-----------------------------------------------------------------------------
@@ -385,8 +403,16 @@ void isozbatch_draw(void)
 	for (int i = 0; i<is.zbatch->count; i++) {
 		e = array_get(is.zbatch, i);
 		iso_world2screen(e->x, e->y, &wx, &wy);	
-		iso_illuminate(e->x, e->y, &e->sprite->r, &e->sprite->g, &e->sprite->b);
-		blit_sprite(e->sprite, wx, wy);
+        e->sprite->angle = e->angle;
+        if (e->light) {
+    		iso_illuminate(e->x, e->y, &e->sprite->r, &e->sprite->g, &e->sprite->b);
+        } else {
+            e->sprite->r = e->sprite->g = e->sprite->b = 1;
+        }
+        e->sprite->r *= e->r;
+        e->sprite->g *= e->g;
+        e->sprite->b *= e->b;
+		blit_sprite_scaled(e->sprite, wx, wy-e->z, e->s);
 	}
 	array_clear(is.zbatch);
 }

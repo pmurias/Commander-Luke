@@ -44,7 +44,9 @@ void isoanim_set_center(IsoAnim *anim, int cen_x, int inv_cen_y);
 int isoanim_width(IsoAnim *anim);
 int isoanim_height(IsoAnim *anim);
 
+void isozbatch_add_sprite_ex(Sprite *s, float x, float y, float z, float offx, float offy, float sc, float an, int l, float r, float g, float b);
 void isozbatch_add_sprite(Sprite *s, float x, float y);
+void isozbatch_add_sprite_scaled(Sprite *s, float x, float y, float sc);
 void isozbatch_add_frame(IsoAnim *anim, float x, float y, float time, float dirx, float diry);
 void isozbatch_add_sprite_off(Sprite *s, float x, float y, float offx, float offy);
 void isozbatch_draw(void);

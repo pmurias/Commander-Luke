@@ -49,7 +49,8 @@ static void draw(Spell * s, float time_delta)
 
 		Sprite *nova = blit_get_sprite("./data/flare.png");
 		nova->r = nova->g = nova->b = 1.0;
-		blit_sprite_scaled(nova, wx, wy, scale);
+        isozbatch_add_sprite_scaled(nova, x, y, scale);
+	//	blit_sprite_scaled(nova, wx, wy, scale);
 	}
 
 }
@@ -63,8 +64,8 @@ static void nova_rebuild(Spell * s)
 
 GENERIC_CORE_PACK_SIZE(nova_pack_size, Nova)
 
-    GENERIC_CORE_SERIALIZER(Spell, Nova)
-    GENERIC_CORE_DESERIALIZER(Spell, Nova, nova_rebuild)
+GENERIC_CORE_SERIALIZER(Spell, Nova)
+GENERIC_CORE_DESERIALIZER(Spell, Nova, nova_rebuild)
 //-----------------------------------------------------------------------------
 static void _free(Spell ** s)
 {
