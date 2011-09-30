@@ -194,7 +194,7 @@ void game_logic_tick(NetworkType *network)
 			}
 		case NETCMD_SPAWNNOVA:{
 				Netcmd_SpawnNova *sf = (Netcmd_SpawnNova *) command;
-				Spell *nova = create_nova(sf->x, sf->y,sf->sender);
+				Spell *nova = create_nova(sf->x, sf->y,sf->sender+1);
                                 
 				intmap_ins(spells, spell_uid++, nova);				
 				break;
