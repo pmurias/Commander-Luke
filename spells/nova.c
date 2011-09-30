@@ -13,20 +13,46 @@ typedef struct {
 	float x;
 	float y;
 	float fade;
+	int team;
 } NovaCore;
 
 typedef struct {
 	SPELL_BASE;
+	IntMap *hit;
 	NovaCore c;
 } Nova;
+
+static float radious(Nova * spell)
+{
+	return 4.0 * (1 - spell->c.fade) + 1;
+}
 
 //-----------------------------------------------------------------------------
 static void tick(Spell ** s)
 {
 	Nova *spell = (Nova *) * s;
-        spell->c.fade -= 0.01;
+	spell->c.fade -= 0.01;
 	if (spell->c.fade < 0.01) {
 		(*s)->vtable->free(s);
+	}
+
+	for (int i = 0; i < critters->size; i++) {
+		if (critters->keys[i]) {
+			Critter *c = critters->data[i];
+			float x, y;
+
+			c->vtable->get_viewpoint(c, &x, &y);
+
+			float fx = x - spell->c.x;
+			float fy = y - spell->c.y;
+			float len = sqrt(fx * fx + fy * fy);
+			if (fabs(len - radious(spell)) < 0.1 && critters->keys[i] != spell->c.team) {
+				if (intmap_find(spell->hit, critters->keys[i]) == NULL) {
+					c->vtable->damage(c, 10);
+					intmap_ins(spell->hit, critters->keys[i], (void *)1);
+				}
+			}
+		}
 	}
 }
 
@@ -36,8 +62,8 @@ static void draw(Spell * s, float time_delta)
 	Nova *spell = (Nova *) s;
 
 	float scale = 0.3;
-	float r = 4.0*(1-spell->c.fade)+0.4;
-        int n = 64;
+	float r = radious(spell);
+	int n = 64;
 	for (int i = 0; i < n; i++) {
 		float a = (i * 2 * M_PI / n);
 
@@ -49,8 +75,8 @@ static void draw(Spell * s, float time_delta)
 
 		Sprite *nova = blit_get_sprite("./data/flare.png");
 		nova->r = nova->g = nova->b = 1.0;
-        isozbatch_add_sprite_scaled(nova, x, y, scale);
-	//	blit_sprite_scaled(nova, wx, wy, scale);
+		isozbatch_add_sprite_scaled(nova, x, y, scale);
+		//      blit_sprite_scaled(nova, wx, wy, scale);
 	}
 
 }
@@ -64,8 +90,8 @@ static void nova_rebuild(Spell * s)
 
 GENERIC_CORE_PACK_SIZE(nova_pack_size, Nova)
 
-GENERIC_CORE_SERIALIZER(Spell, Nova)
-GENERIC_CORE_DESERIALIZER(Spell, Nova, nova_rebuild)
+    GENERIC_CORE_SERIALIZER(Spell, Nova)
+    GENERIC_CORE_DESERIALIZER(Spell, Nova, nova_rebuild)
 //-----------------------------------------------------------------------------
 static void _free(Spell ** s)
 {
@@ -91,15 +117,17 @@ Spell *new_nova()
 	Nova *spell = (Nova *) malloc(sizeof(Nova));
 	spell->vtable = &vtable;
 	spell->c.type = SPELL_FLARE;
+	spell->hit = new_intmap();
 	return (Spell *) spell;
 }
 
 //-----------------------------------------------------------------------------
-Spell *create_nova(float x, float y)
+Spell *create_nova(float x, float y, int team)
 {
 	Nova *spell = (Nova *) new_nova();
 	spell->c.x = x;
 	spell->c.y = y;
 	spell->c.fade = 1.0;
+	spell->c.team = team;
 	return (Spell *) spell;
 }
