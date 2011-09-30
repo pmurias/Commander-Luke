@@ -8,23 +8,26 @@
 #include "critter.h"
 #include <stdio.h>
 
+#define MAXIMAL_HITS 64
 typedef struct {
 	uint8_t type;
 	float x;
 	float y;
 	float fade;
 	int team;
+        uint32_t hit[MAXIMAL_HITS];
+        int hitTop;
 } NovaCore;
 
 typedef struct {
 	SPELL_BASE;
-	IntMap *hit;
 	NovaCore c;
 } Nova;
 
+
 static float radious(Nova * spell)
 {
-	return 4.0 * (1 - spell->c.fade) + 1;
+	return 4.0 * (1 - spell->c.fade) + 0.04;
 }
 
 //-----------------------------------------------------------------------------
@@ -47,10 +50,18 @@ static void tick(Spell ** s)
 			float fy = y - spell->c.y;
 			float len = sqrt(fx * fx + fy * fy);
 			if (fabs(len - radious(spell)) < 0.1 && critters->keys[i] != spell->c.team) {
-				if (intmap_find(spell->hit, critters->keys[i]) == NULL) {
-					c->vtable->damage(c, 10);
-					intmap_ins(spell->hit, critters->keys[i], (void *)1);
-				}
+                                int j;
+                                for (j=0;j<=spell->c.hitTop;j++) {
+                                    if (critters->keys[i] == spell->c.hit[j]) {
+                                      break;
+                                    }
+                                }
+
+                                if (j == spell->c.hitTop+1 && spell->c.hitTop < MAXIMAL_HITS-1) {
+                                        spell->c.hit[++spell->c.hitTop] = critters->keys[i];
+					c->vtable->damage(c, 9001);
+
+                                }
 			}
 		}
 	}
@@ -117,7 +128,6 @@ Spell *new_nova()
 	Nova *spell = (Nova *) malloc(sizeof(Nova));
 	spell->vtable = &vtable;
 	spell->c.type = SPELL_FLARE;
-	spell->hit = new_intmap();
 	return (Spell *) spell;
 }
 
@@ -129,5 +139,6 @@ Spell *create_nova(float x, float y, int team)
 	spell->c.y = y;
 	spell->c.fade = 1.0;
 	spell->c.team = team;
+        spell->c.hitTop = -1;
 	return (Spell *) spell;
 }
