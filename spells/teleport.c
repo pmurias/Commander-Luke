@@ -147,7 +147,7 @@ Spell *new_teleport(int gfx)
 {
 	Teleport *spell = (Teleport *) malloc(sizeof(Teleport));
 	spell->vtable = &vtable;
-	spell->c.type = SPELL_FLARE;
+	spell->c.type = SPELL_TELE;
 			
 	if (gfx) {
 		spell->scale = 0.2;	

@@ -127,7 +127,7 @@ Spell *new_nova()
 {
 	Nova *spell = (Nova *) malloc(sizeof(Nova));
 	spell->vtable = &vtable;
-	spell->c.type = SPELL_FLARE;
+	spell->c.type = SPELL_NOVA;
 	return (Spell *) spell;
 }
 
