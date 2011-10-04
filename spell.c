@@ -33,6 +33,14 @@ static uint32_t spell_deserializer(void *cptr, void *inbuf)
 		c->vtable->deserialize(c, inbuf, flare_pack_size());
 		return flare_pack_size();
 		break;
+	case SPELL_NOVA:		
+		c->vtable->deserialize(c, inbuf, nova_pack_size());
+		return flare_pack_size();
+		break;
+    case SPELL_TELE:		
+		c->vtable->deserialize(c, inbuf, teleport_pack_size());
+		return flare_pack_size();
+		break;
 	default:
 		printf("error: unknown spell type!\n");
 		exit(1);
