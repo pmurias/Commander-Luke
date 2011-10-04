@@ -35,11 +35,11 @@ static uint32_t spell_deserializer(void *cptr, void *inbuf)
 		break;
 	case SPELL_NOVA:		
 		c->vtable->deserialize(c, inbuf, nova_pack_size());
-		return flare_pack_size();
+		return nova_pack_size();
 		break;
     case SPELL_TELE:		
 		c->vtable->deserialize(c, inbuf, teleport_pack_size());
-		return flare_pack_size();
+		return teleport_pack_size();
 		break;
 	default:
 		printf("error: unknown spell type!\n");
@@ -59,7 +59,7 @@ static void *spell_ctor(void *inbuf)
     case SPELL_TELE:
         return new_teleport(1);
 	default:
-		printf("error: unknown critter type!\n");
+		printf("error: unknown critter type :%d!\n",type);
 		exit(1);
 	}
 }
