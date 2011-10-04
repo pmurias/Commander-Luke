@@ -35,6 +35,16 @@ typedef struct {
 	uint8_t sender;
 	float x;
 	float y;
+	float target_x;
+	float target_y;
+	int caster;
+} Netcmd_SpawnTeleport;
+
+typedef struct {
+	NetcmdHeader header;	
+	uint8_t sender;
+	float x;
+	float y;
 } Netcmd_SpawnNova;
 
 typedef struct {
@@ -50,6 +60,7 @@ typedef struct {
 #define NETCMD_SPAWNFLARE 3
 #define NETCMD_SETLOGIN 4
 #define NETCMD_SPAWNNOVA 5
+#define NETCMD_SPAWNTELEPORT 6
 
 void commands_startup(void);
 

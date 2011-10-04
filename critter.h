@@ -22,6 +22,7 @@ struct CritterVTable {
   void (*serialize)(Critter *critter, void** buf, uint32_t *size);
   void (*deserialize)(Critter *critter, void* buf, uint32_t size);  
   void (*get_viewpoint)(Critter* critter,float *x,float *y);
+  void (*set_pos)(Critter* critter,float x,float y);
   void (*damage)(Critter*,float hp);
   float (*get_hp)(Critter*);
   float (*get_velocity)(Critter*);

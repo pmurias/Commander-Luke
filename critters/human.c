@@ -151,6 +151,14 @@ static void get_viewpoint(Critter * c, float *x, float *y)
 }
 
 //-----------------------------------------------------------------------------
+static void set_pos(Critter * c, float x, float y)
+{
+	Human *cri = (Human *) c;
+	cri->c.x = x;
+	cri->c.y = y;
+}
+
+//-----------------------------------------------------------------------------
 static float get_hp(Critter * c)
 {
 	Human *cri = (Human *) c;
@@ -183,6 +191,7 @@ void human_init_vtable()
 	vtable.serialize = serialize;
 	vtable.deserialize = deserialize;
 	vtable.get_viewpoint = get_viewpoint;
+	vtable.set_pos = set_pos;
 	vtable.get_hp = get_hp;
 	vtable.get_velocity = get_velocity;
 	vtable.set_ai = set_ai;

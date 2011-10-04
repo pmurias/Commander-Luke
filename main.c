@@ -28,6 +28,7 @@
 #include "spell.h"
 #include "spells/flare.h"
 #include "spells/nova.h"
+#include "spells/teleport.h"
 
 
 #define MAX_CLIENTS 20
@@ -192,6 +193,12 @@ void game_logic_tick(NetworkType *network)
 				intmap_ins(spells, spell_uid++, flare);				
 				break;
 			}
+		case NETCMD_SPAWNTELEPORT:{
+				Netcmd_SpawnTeleport *sf = (Netcmd_SpawnTeleport *) command;
+				Spell *flare = create_teleport(1, sf->caster, sf->x, sf->y, sf->target_x, sf->target_y);
+				intmap_ins(spells, spell_uid++, flare);				
+				break;
+			}
 		case NETCMD_SPAWNNOVA:{
 				Netcmd_SpawnNova *sf = (Netcmd_SpawnNova *) command;
 				Spell *nova = create_nova(sf->x, sf->y,sf->sender+1);
@@ -299,6 +306,9 @@ void client_loop(NetworkType * network)
 			if (window_keypressed('2')) {
                         	weapon = 2;
                         }
+			if (window_keypressed('3')) {
+                        	weapon = 3;
+                        }
 
 			if (window_keypressed('X')) {
 				running = 0;
@@ -345,6 +355,24 @@ void client_loop(NetworkType * network)
 					}
 				}
 			}
+			if (weapon == 3 && window_mousepressed(1)) {
+					Netcmd_SpawnTeleport cmd;
+					cmd.header.type = NETCMD_SPAWNTELEPORT;
+					cmd.sender = network->get_id(network->state);
+					cmd.caster = network->get_id(network->state)+1;
+	
+					Critter *player = intmap_find(critters, cmd.sender+1);
+					float hp = player->vtable->get_hp(player);
+	
+					if (hp >= 1) {
+						player->vtable->get_viewpoint(player, &cmd.x, &cmd.y);					
+						iso_screen2world(window_xmouse(),  window_ymouse(), &cmd.target_x, &cmd.target_y);
+						float f = 200.0/sqrt(pow(cmd.x-cmd.target_x, 2) + pow(cmd.y-cmd.target_y, 2));
+						cmd.target_x += (float)((rand_rand()%100)-50)/f;
+						cmd.target_y += (float)((rand_rand()%100)-50)/f;
+						network->add_command(network->state, (Netcmd*)&cmd);
+					}
+                        }
 							
 			if (ticks) {
 				game_logic_tick(network);				
@@ -504,6 +532,7 @@ void system_startup()
 	blurred_init_vtable();
 	flare_init_vtable();
 	nova_init_vtable();
+	teleport_init_vtable();
 	
 	spells = new_intmap();
 	critters = new_intmap();
