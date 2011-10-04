@@ -27,7 +27,7 @@ typedef struct {
 
 static float radious(Nova * spell)
 {
-	return 4.0 * (1 - spell->c.fade) + 0.04;
+	return 2.0 * (1 - spell->c.fade) + 0.04;
 }
 
 //-----------------------------------------------------------------------------
@@ -59,7 +59,7 @@ static void tick(Spell ** s)
 
                                 if (j == spell->c.hitTop+1 && spell->c.hitTop < MAXIMAL_HITS-1) {
                                         spell->c.hit[++spell->c.hitTop] = critters->keys[i];
-					c->vtable->damage(c, 9001);
+					c->vtable->damage(c, 30);
 
                                 }
 			}
