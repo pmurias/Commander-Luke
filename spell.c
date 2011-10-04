@@ -4,6 +4,8 @@
 
 #include "spell.h"
 #include "spells/flare.h"
+#include "spells/teleport.h"
+#include "spells/nova.h"
 
 uint32_t spell_uid = 1;
 IntMap *spells;
@@ -42,8 +44,12 @@ static void *spell_ctor(void *inbuf)
 {	
 	uint8_t type = *(uint8_t*)(inbuf);
 	switch (type) {
-	case SPELL_FLARE:				
-		return new_flare(1); 		
+	case SPELL_FLARE:
+		return new_flare(1);
+    case SPELL_NOVA:
+        return new_nova();
+    case SPELL_TELE:
+        return new_teleport(1);
 	default:
 		printf("error: unknown critter type!\n");
 		exit(1);

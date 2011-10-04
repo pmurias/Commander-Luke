@@ -22,6 +22,8 @@ struct Spell {
 };
 
 #define SPELL_FLARE 1
+#define SPELL_NOVA 2
+#define SPELL_TELE 3
 
 extern uint32_t spell_uid;
 extern IntMap *spells;
